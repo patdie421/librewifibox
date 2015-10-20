@@ -311,7 +311,7 @@ void *_link_thread(void *args)
                   mini_display_xy_printf(display, DISPLAY_PAGE, 0, AUTH_LINE, 1, "AUTHENTICATION:  --");
                for(;i<3;i++)
                {
-                  if (mea_test_timer(&hb_timer))
+                  if (mea_test_timer(&hb_timer)==0)
                   {
                      process_heartbeat(myID);
                   }
