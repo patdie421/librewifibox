@@ -1,0 +1,12 @@
+.DS_Store
+*.o
+*.swp
+*.pyc
+*.dep
+*.a
+*.objects/
+xcuserdata/
+xcsharedata/
+*.xccheckout
+librewifi2
+a.out
