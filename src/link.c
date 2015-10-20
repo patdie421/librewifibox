@@ -187,8 +187,6 @@ void *_link_thread(void *args)
    char free_passwd[20]="";
 
    struct mini_display_s *display=NULL;
-//   char *login="9879683003";
-//   char *password="wificdp1";
    int nb_reconnection=0;
 
    struct _link_thread_data_s *_args=(struct _link_thread_data_s *)args;

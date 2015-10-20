@@ -1,7 +1,7 @@
 #!/bin/bash
 
-KEY='9879683003' # identifiant freewifi, aller sur wifi.free.fr si vous ne l'avez pas encore
-PASSWORD='wificdp1' # mot de passe freewifi
+KEY='XXXXXXXXXX' # identifiant freewifi, aller sur wifi.free.fr si vous ne l'avez pas encore
+PASSWORD='XXXXXXXX' # mot de passe freewifi
 
 # interface wifi utilisee pour la connexion freewifi
 #IFACE=wlan1
@@ -9,7 +9,7 @@ IFACE=wlan0
 
 WIFIESSID="FreeWifi"
 
-# hote de reference pour verifier la connexion reseau
+# hôte de reference pour vérifier la connexion réseau
 HOSTREF=""
 #HOSTREF="wifi.free.fr"
 #HOSTREF="localhost"
