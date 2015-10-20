@@ -32,4 +32,7 @@ clean:
 depsdir:
 	@mkdir -p .deps
 
+install: librewifi2
+	sudo service librewifi2 stop ; make ; sleep 5 ; cp librewifi2 /data/librewifi2/bin ; sudo service librewifi2 start
+
 -include .deps/*.dep
