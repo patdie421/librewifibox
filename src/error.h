@@ -8,6 +8,7 @@
 #ifndef mea_eDomus_error_h
 #define mea_eDomus_error_h
 
+
 typedef enum error_e
 {
    ERROR=-1,

@@ -130,4 +130,3 @@ int freewifi_auth(char *login, char *password)
    return ret;
 }
 
-

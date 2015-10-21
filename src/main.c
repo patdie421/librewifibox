@@ -32,6 +32,7 @@
 #include "stats.h"
 #include "gui.h"
 #include "params.h"
+#include "access_point.h"
 
 // #include "debug.h"
 
@@ -185,7 +186,7 @@ void sighup_handler(int signo)
       {
           set_reboot_flag(1);
 
-          populate_hostapd_cfg(sys_params[HOSTAPD_CFG_TEMPLATE_ID], "/etc/hostapd/hostapd.conf", sys_params[HOSTAPD_IFACE_ID], user_params[MY_ESSID_ID], user_params[MY_PASSWORD_ID]);
+          create_hostapd_cfg(sys_params[HOSTAPD_CFG_TEMPLATE_ID], "/etc/hostapd/hostapd.conf", sys_params[HOSTAPD_IFACE_ID], user_params[MY_ESSID_ID], user_params[MY_PASSWORD_ID]);
 
           VERBOSE(2) mea_log_printf("%s (%s) : new parameters need a reboot\n", INFO_STR, __func__);
 

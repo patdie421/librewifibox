@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "memfile.h"
 
+#include "access_point.h"
 
 int restart_hostapd_service()
 {
@@ -23,7 +24,7 @@ int reboot()
 }
 
 
-int populate_hostapd_cfg(char *template_file, char *dest_file, char *iface, char *essid, char *passwd)
+int create_hostapd_cfg(char *template_file, char *dest_file, char *iface, char *essid, char *passwd)
 {
    FILE *fd_in=NULL, *fd_out=NULL;
    struct memfile_s *mf=NULL;

@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <curl/curl.h>
-
-#include "mea_verbose.h"
 
 #include "curl_adds.h"
 
+#include "mea_verbose.h"
 #include "debug.h"
+
 
 int curl_result_init(struct curl_result_s *cr)
 {
@@ -51,5 +50,3 @@ size_t curl_result_get(void *ptr, size_t size, size_t nmemb, struct curl_result_
 
   return size*nmemb;
 }
-
-

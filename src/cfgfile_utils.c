@@ -176,22 +176,3 @@ mea_load_config_file_clean_exit:
 
    return -1;
 }
-
-
-#ifdef TESTMODULE
-int main(int argc, char *argv)
-{
-   char *params[5];
-   int i=0;
-   for(;i<5;i++)
-      params[i]=NULL;
-
-   int ret=mea_load_cfgfile("librewifi.cfg", params_list, params, 5);
-
-   for(i=0;i<5;i++)
-      if(params[i])
-      {
-         printf("%d: %s = %s\n", i, _getParamKey(params_list,i), params[i]);
-      }
-}
-#endif

@@ -354,11 +354,14 @@ void mea_strremovespaces(char *str)
 {
    char c, *p;
 
-	p = str;
-	do
-		while ((c = *p++) == ' ');
-	while (*str++ = c);
-	return;
+   p = str;
+   do
+   {
+      while ((c = *p++) == ' ');
+   }
+   while (*str++ = c);
+
+   return;
 }
 
 

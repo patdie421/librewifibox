@@ -74,6 +74,7 @@ ip_clean_exit:
    return ret;
 }
 
+
 static unsigned short _ping_checksum(void *b, int len)
 {
     unsigned short *buf = b;
