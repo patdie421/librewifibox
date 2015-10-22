@@ -60,8 +60,8 @@ int usage(char *cmnd)
    return -1;
 }
 
-/*
-int scheduled_job(int my_id, void *data, char *errmsg, int l_errmsg)
+
+int logfile_rotation_job(int my_id, void *data, char *errmsg, int l_errmsg)
 {
    fprintf(stderr, "********************************************************************************\n");
    fprintf(stderr, "*                                                                              *\n");
@@ -72,7 +72,9 @@ int scheduled_job(int my_id, void *data, char *errmsg, int l_errmsg)
    fprintf(stderr, "*                                                                              *\n");
    fprintf(stderr, "*                                                                              *\n");
    fprintf(stderr, "********************************************************************************\n");
-   sleep(65);
+
+   
+
    fprintf(stderr, "********************************************************************************\n");
    fprintf(stderr, "*                                                                              *\n");
    fprintf(stderr, "*                                                                              *\n");
@@ -85,7 +87,7 @@ int scheduled_job(int my_id, void *data, char *errmsg, int l_errmsg)
    
    return;
 }
-*/
+
 
 void stop_all(int exit_code)
 {
@@ -178,6 +180,7 @@ void sighup_handler(int signo)
       if(ret<0)
       {
          VERBOSE(2) mea_log_printf("%s (%s) : can't reload cfg file\n", ERROR_STR, __func__);
+         set_reboot_flag(0);
          return;
       }
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdarg.h>
+#include <pthread.h>
 
 #include "mea_verbose.h"
 
@@ -13,6 +14,14 @@ const char *_debug_str = "DEBUG";
 const char *_fatal_error_str="FATAL ERROR";
 const char *_warning_str="WARNING";
 const char *_malloc_error_str="malloc error";
+
+pthread_rwlock_t mea_log_rwlock = PTHREAD_RWLOCK_INITIALIZER;
+
+pthread_rwlock_t *mea_log_get_rwlock()
+{
+   return &mea_log_rwlock;
+}
+
 
 void mea_log_printf(char const* fmt, ...)
 /**
@@ -43,10 +52,17 @@ void mea_log_printf(char const* fmt, ...)
       return;
    }
 
-   fprintf(MEA_STDERR, "%s ", date_str);
-   
    va_start(args, fmt);
+
+   pthread_cleanup_push( (void *)pthread_rwlock_unlock, (void *)&mea_log_rwlock );
+   pthread_rwlock_wrlock(&mea_log_rwlock);
+
+   fprintf(MEA_STDERR, "%s ", date_str);
    vfprintf(MEA_STDERR, fmt, args);
+
+   pthread_rwlock_unlock(&mea_log_rwlock);
+   pthread_cleanup_pop(0);
+
    va_end(args);
 }
 

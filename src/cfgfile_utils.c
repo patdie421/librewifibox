@@ -133,8 +133,9 @@ int mea_load_cfgfile(char *file, struct param_s *keys_names_list, char *params[]
  
          if(key[0]==0 || value[0]==0)
          {
-            VERBOSE(5) mea_log_printf("syntax error : %s, line %d not a \"key = value\" line\n", file, i);
-            goto mea_load_config_file_clean_exit;
+            VERBOSE(9) mea_log_printf("syntax error : %s, line %d not a \"key = value\" line\n", file, i);
+//            goto mea_load_config_file_clean_exit;
+            continue;
          }
          
          char *tkey=mea_strtrim(key);

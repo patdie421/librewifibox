@@ -1,6 +1,7 @@
 #ifndef __mea_verbose_h
 #define __mea_verbose_h
 
+#include <pthread.h>
 #include <stdarg.h>
 
 #define ERROR_STR        _error_str
@@ -27,5 +28,6 @@ extern const char *_malloc_error_str;
 #define PRINT_MALLOC_ERROR { mea_log_printf("%s (%s) : %s - ", ERROR_STR, __func__, MALLOC_ERROR_STR); perror(""); }
 
 void mea_log_printf(char const* fmt, ...);
+pthread_rwlock_t *mea_log_get_rwlock();
 
 #endif

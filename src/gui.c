@@ -18,6 +18,7 @@
 #include "memfile.h"
 #include "params.h"
 #include "iwlib.h"
+#include "ip_utils.h"
 
 static int reboot_flag=-1;
 
@@ -200,13 +201,13 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
    const char *cl;
    struct memfile_s *mf=NULL;
    int error=0;
-   char pass1[32]="";
-   char pass2[32]="";
+   char pass1[32]="", pass2[32]="";
+   char essid_name[IW_ESSID_MAX_SIZE+1]="", essid_pass[64]="";
+   char ip[32]="", netmask[32]="", dhcp_start[32]="", dhcp_end[32]="";
+   char ip_netmask[sizeof(ip)+sizeof(netmask)];
+   char dhcp_start_end[sizeof(dhcp_start)+sizeof(dhcp_end)];
+   char freewifi_login[21]="", freewifi_pass[33]="";
    char submited[2]="";
-   char essid_name[IW_ESSID_MAX_SIZE+1]="";
-   char essid_pass[64]="";
-   char freewifi_login[21]="";
-   char freewifi_pass[33]="";
 
    char *params[NB_USERPARAMS];
    memset(params,0,sizeof(params));
@@ -221,7 +222,7 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
    int ret=mea_load_cfgfile(sys_params[CONNECTIONCFGFILE_ID], user_params_keys_list, params, NB_USERPARAMS);
    if(ret<0)
    {
-      VERBOSE(2) mea_log_printf("%s (%s) : can't load parameters file\n",ERROR_STR,__func__);
+      VERBOSE(2) mea_log_printf("%s (%s) : can't load parameters file\n", ERROR_STR, __func__);
       _httpResponse(conn, "Internal error");
       goto page_index_clean_exit;
       return 1;
@@ -254,11 +255,16 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
             mg_get_var(buf, len, "essid_name", essid_name, sizeof(essid_name));
             mg_get_var(buf, len, "fwpass", freewifi_pass, sizeof(freewifi_pass));
             mg_get_var(buf, len, "fwuser", freewifi_login, sizeof(freewifi_login));
+            mg_get_var(buf, len, "ipbox1", ip, sizeof(ip));
+            mg_get_var(buf, len, "netmask1", netmask, sizeof(netmask));
+            mg_get_var(buf, len, "ipstart1", dhcp_start, sizeof(dhcp_start));
+            mg_get_var(buf, len, "ipend1", dhcp_end, sizeof(dhcp_end));
+            sprintf(ip_netmask,"%s, %s", ip, netmask);
+            sprintf(dhcp_start_end,"%s, %s", dhcp_start, dhcp_end);
 
             if(strcmp(pass1,pass2)!=0)
                error=error | 0b00000001;
 
-            fprintf(stderr,"error=%d\n", error);
             if(strlen(essid_pass)<8 || strlen(essid_pass)>63)
                error=error | 0b00000010;
 
@@ -281,6 +287,27 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
             if(strlen(freewifi_login)<1 || strlen(freewifi_login)>20)
                error=error | 0b00100000;
 
+            uint32_t _addr, _netmask, _start, _end;
+            if(str_is_valid_addr(ip, &_addr)==-1)
+               error=error | 0b01000000;
+
+            if(str_is_valid_netmask(netmask, &_netmask)==-1)
+               error=error | 0b10000000;
+
+            if(str_is_valid_addr(dhcp_start, &_start)==-1)
+               error=error | 0b0000000100000000;
+            else if(addrs_in_same_network(_addr, _start, _netmask)==-1)
+               error=error | 0b0000010000000000;
+
+            if(str_is_valid_addr(dhcp_end, &_end)==-1)
+               error=error | 0b0000001000000000;
+            else if(addrs_in_same_network(_addr, _end, _netmask)==-1)
+               error=error | 0b0000100000000000;
+
+            if( _addr != 0 && _start != 0 && _end !=0 )
+               if( _addr >= _start && _addr <= _end)
+                  error=error | 0b0001000000000000;
+
             if(error==0)
             {
                char *new_params[NB_USERPARAMS];
@@ -289,6 +316,8 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
                new_params[MY_PASSWORD_ID]=essid_pass;
                new_params[FREE_ID_ID]=freewifi_login;
                new_params[FREE_PASSWORD_ID]=freewifi_pass;
+               new_params[MY_IP_AND_NETMASK_ID]=ip_netmask;
+               new_params[MY_DHCP_RANGE_ID]=dhcp_start_end;
 
                mea_write_cfgfile(sys_params[CONNECTIONCFGFILE_ID], user_params_keys_list, new_params, NB_USERPARAMS);
 
@@ -325,12 +354,19 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
 
    if(issubmit==-1)
    {
+      int n;
       strcpy(pass1, params[ADMIN_PASSWORD_ID]);
       strcpy(pass2, params[ADMIN_PASSWORD_ID]);
       strcpy(essid_name, params[MY_ESSID_ID]);
       strcpy(essid_pass, params[MY_PASSWORD_ID]);
       strcpy(freewifi_login, params[FREE_ID_ID]);
       strcpy(freewifi_pass, params[FREE_PASSWORD_ID]);
+      sscanf(params[MY_IP_AND_NETMASK_ID],"%32[^,],%32[^/n]%n", ip, netmask, &n);
+      sscanf(params[MY_DHCP_RANGE_ID],"%32[^,],%32[^/n]%n", dhcp_start, dhcp_end, &n);
+      mea_strtrim2(ip);
+      mea_strtrim2(netmask);
+      mea_strtrim2(dhcp_start);
+      mea_strtrim2(dhcp_end);
    }
 
    memfile_printf(
@@ -373,6 +409,7 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
 
         "jQuery(document).ready(function(){"
            "$.ajaxSetup({ cache: false });"
+           "$('#info_box').delay(3000).fadeOut(1000);"
         "});"
 
         "</script>"
@@ -383,36 +420,78 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
                "<div style=\"display:inline-block\">"
                   "<img src=\"logo-librewifi.png\" border=\"0\" align=\"center\" width=400px/>"
                "</div>"
-           "<div>");
-        
-   if(error)
-   { 
-      memfile_printf(mf, 
-           "<div style=\"margin-top:25px;\">");
-      if(error & 0b00000001)
+           "<div>"
+           "<div style=\"display:inline-block;margin-top:50px\">");
+   
+   if(issubmit!=-1)
+   {     
+      if(error)
+      { 
          memfile_printf(mf, 
+//              "<div id=\"info_box\" style=\"margin-bottom:15px;padding-bottom:10px;padding-top:10px;border:1px solid red;color:red;\">");
+              "<div id=\"info_box\" style=\"padding:5px;margin-bottom:15px;border:1px solid red;color:red;\">");
+         memfile_printf(mf, 
+              "<DIV style=\"margin-bottom:10px;\"><B>Data not saved</B></DIV>", error);
+         if(error & 0b00000001)
+            memfile_printf(mf, 
               "<DIV>ERROR: password confirmation doesn't match password</DIV>", error);
-      if(error & 0b00001000)
-         memfile_printf(mf, 
+         if(error & 0b00001000)
+            memfile_printf(mf, 
               "<DIV>ERROR: essid name not set or too long (need 1 to 32 caracters)</DIV>", error);
-      if(error & 0b00000010)
-         memfile_printf(mf, 
-              "<DIV>ERROR: incorrect essid password length (8 to 63 caracters needed)</DIV>", error);
-      if(error & 0b00000100)
-         memfile_printf(mf, 
+         if(error & 0b00000010)
+            memfile_printf(mf, 
+              "<DIV>ERROR: incorrect essid passphrase length (8 to 63 caracters needed)</DIV>", error);
+         if(error & 0b00000100)
+            memfile_printf(mf, 
               "<DIV>ERROR: essid pass can only have printable characters</DIV>", error);
-      if(error & 0b00010000)
-         memfile_printf(mf, 
-              "<DIV>ERROR: incorrect freewifi pass length (32 caracters max)</DIV>", error);
-      if(error & 0b00100000)
-         memfile_printf(mf, 
+         if(error & 0b00010000)
+            memfile_printf(mf, 
+              "<DIV>ERROR: incorrect freewifi password length (32 caracters max)</DIV>", error);
+         if(error & 0b00100000)
+            memfile_printf(mf, 
               "<DIV>ERROR: incorrect freewifi user length (32 caracters max)</DIV>", error);
-      memfile_printf(mf, 
+         if(error & 0b01000000)
+            memfile_printf(mf, 
+              "<DIV>ERROR: invalid box ip address</DIV>", error);
+         if(error & 0b10000000)
+            memfile_printf(mf, 
+              "<DIV>ERROR: invalid netmask</DIV>", error);
+         if(error & 0b0000000100000000)
+            memfile_printf(mf, 
+              "<DIV>ERROR: invalid first dhcp address</DIV>", error);
+         if(error & 0b0000001000000000)
+            memfile_printf(mf, 
+              "<DIV>ERROR: invalid last dhcp address</DIV>", error);
+         if(error & 0b0000010000000000)
+            memfile_printf(mf, 
+              "<DIV>ERROR: first dhcp address not in box network</DIV>", error);
+         if(error & 0b0000100000000000)
+            memfile_printf(mf, 
+              "<DIV>ERROR: last dhcp address not in box network</DIV>", error);
+         if(error & 0b0001000000000000)
+            memfile_printf(mf, 
+              "<DIV>ERROR: box ip address in dhcp range</DIV>", error);
+         memfile_printf(mf, 
            "</div>");
+      }
+      else
+      {
+         memfile_printf(mf, 
+           "<div id=\"info_box\" style=\"padding:5px;margin-bottom:15px;border:1px solid green;color:green;\">");
+         memfile_printf(mf, 
+           "<DIV><B>New parameters successully saved</B></DIV>");
+         memfile_printf(mf, 
+           "</div>");
+      }
    }
+   else
+   {
+      memfile_printf(mf, 
+           "<div id=\"info_box\" style=\"display:none;padding:5px;margin-bottom:15px;border:1px solid black;color:black;\"></DIV>");
+   }
+
    memfile_printf(
       mf,
-           "<div style=\"display:inline-block;margin-top:75px\">"
            "<form id=\"index_fm\" method=post>"
               "<div id=\"p1\" class=\"easyui-panel\" data-options=\"style:{margin:'0 auto'}\" title=\"Admin account\" style=\"width:700px;padding:10px;margin-bottom:25px;\">"
                  "<table width=\"600px\" align=\"center\" cellpadding=\"5\" style=\"padding-bottom: 5px;\">"
@@ -437,13 +516,13 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
                  "</table>"
               "</div>"
 
-              "<div id=\"p2\" class=\"easyui-panel\" data-options=\"style:{margin:'0 auto'}\" title=\"Librewifi access\" style=\"width:700px;padding:10px;margin-bottom:25px;\">"
+              "<div id=\"p2\" class=\"easyui-panel\" data-options=\"style:{margin:'0 auto'}\" title=\"Librewifi access point\" style=\"width:700px;padding:10px;margin-bottom:25px;\">"
                  "<table width=\"600px\" align=\"center\" cellpadding=\"5\" style=\"padding-bottom: 5px;\">"
                     "<col width=\"35%%\">"
                     "<col width=\"65%%\">"
                     "<tr>"
                        "<td align=\"right\">"
-                          "<label for=\"essid_name\" id=\"essid_name_lbl\">Librewifi essid</label>"
+                          "<label for=\"essid_name\" id=\"essid_name_lbl\">essid:</label>"
                        "</td>"
                        "<td>"
                           "<input class=\"easyui-textbox\" style=\"height:25px; width:100%%; margin-bottom:0px;\" name=\"essid_name\" id=\"essid_name\" value=\"%s\" data-options=\"required:true,validType:'length[1,32]'\">"
@@ -451,12 +530,49 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
                     "</tr>"
                     "<tr>"
                        "<td align=\"right\">"
-                          "<label for=\"essid_pass\" id=\"essid_pass_lbl\">Librewifi password</label>"
+                          "<label for=\"essid_pass\" id=\"essid_pass_lbl\">WPA2 pass phrase:</label>"
                        "</td>"
                        "<td>"
                           "<input class=\"easyui-textbox\" style=\"height:25px; width:100%%; margin-bottom:0px;\" name=\"essid_pass\" id=\"essid_pass\" value=\"%s\" data-options=\"required:true,validType:'length[8,63]'\">"
                        "</td>"
                     "</tr>"
+
+
+                    "<tr>"
+                       "<td align=\"right\">"
+                          "<label for=\"ipbox1\" id=\"ipbox1_lbl\">box IP adress:</label>"
+                       "</td>"
+                       "<td>"
+                          "<input class=\"easyui-textbox\" style=\"height:25px; width:100%%; margin-bottom:0px;\" name=\"ipbox1\" id=\"ipbox1\" value=\"%s\" data-options=\"required:true\">"
+                       "</td>"
+                    "</tr>"
+                    "<tr>"
+                       "<td align=\"right\">"
+                          "<label for=\"netmask1\" id=\"netmask1_lbl\">box netmask:</label>"
+                       "</td>"
+                       "<td>"
+                          "<input class=\"easyui-textbox\" style=\"height:25px; width:100%%; margin-bottom:0px;\" name=\"netmask1\" id=\"netmask1\" value=\"%s\" data-options=\"required:true\">"
+                       "</td>"
+                    "</tr>"
+
+
+                    "<tr>"
+                       "<td align=\"right\">"
+                          "<label for=\"ipstart1\" id=\"ipstart1_lbl\">dhcp first address:</label>"
+                       "</td>"
+                       "<td>"
+                          "<input class=\"easyui-textbox\" style=\"height:25px; width:100%%; margin-bottom:0px;\" name=\"ipstart1\" id=\"ipstart1\" value=\"%s\" data-options=\"required:true\">"
+                       "</td>"
+                    "</tr>"
+                    "<tr>"
+                       "<td align=\"right\">"
+                          "<label for=\"ipend1\" id=\"ipend1_lbl\">dhcp last address:</label>"
+                       "</td>"
+                       "<td>"
+                          "<input class=\"easyui-textbox\" style=\"height:25px; width:100%%; margin-bottom:0px;\" name=\"ipend1\" id=\"ipend1\" value=\"%s\" data-options=\"required:true\">"
+                       "</td>"
+                    "</tr>"
+
 
                  "</table>"
               "</div>"
@@ -481,7 +597,6 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
                           "<input class=\"easyui-textbox\" style=\"height:25px; width:100%%; margin-bottom:0px;\" name=\"fwpass\" id=\"fwpass\" value=\"%s\" data-options=\"required:true\">"
                        "</td>"
                     "</tr>"
-
                  "</table>"
               "</div>"
               "<input type=hidden name=submited value=1>"
@@ -503,6 +618,10 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
       pass2,
       essid_name,
       essid_pass,
+      ip,
+      netmask,
+      dhcp_start,
+      dhcp_end,
       freewifi_login,
       freewifi_pass
    );
@@ -552,6 +671,7 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
    char login[20];
    char pass[20];
    char admin_pass[20];
+   int error=-1;
 
    struct memfile_s *mf=NULL;
 
@@ -594,6 +714,7 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
          _httpResponseRedirect(conn, "/index.html");
          return 1;
       }
+      error=0;
    }
 
    mf=memfile_init(memfile_alloc(),AUTOEXTEND,1024,1);
@@ -609,8 +730,8 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
          "<title>"
             "LibreWifi"
          "</title>");
-         memfile_include(mf, "/data/librewifi2/www/include/libs.inc", 0);
-      memfile_printf(mf,
+   memfile_include(mf, "/data/librewifi2/www/include/libs.inc", 0);
+   memfile_printf(mf,
       "</head>"
       
       "<script type=\"text/javascript\">"
@@ -622,7 +743,7 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
 
       "jQuery(document).ready(function(){"
          "$.ajaxSetup({ cache: false });"
-
+         "$('#info_box').delay(3000).fadeOut(1000);"
          "$('#login').click(login);"
       "});"      
       "</script>"
@@ -634,7 +755,17 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
                "<img src=\"logo-librewifi.png\" border=\"0\" align=\"center\" width=400px/>"
             "</div>"
          "<div>"
-         "<div style=\"display:inline-block;margin-top:75px\">"
+         "<div style=\"display:inline-block;margin-top:50px\">");
+
+   if(error==0)
+   {
+      memfile_printf(mf,
+            "<div id=\"info_box\" style=\"padding:5px;margin-bottom:15px;border:1px solid red;color:red;\">"
+               "<div><B>Can't validate user password. Check it !</B></div>"
+            "</div>");
+   }
+
+   memfile_printf(mf,
             "<div class=\"easyui-panel\" title=\"Connection\" style=\"width:400px;padding:30px 70px 20px 70px;margin:0 auto\">"
                "<form id=login_fm method=post>"
                   "<div style=\"margin-bottom:10px\">"

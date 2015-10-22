@@ -251,7 +251,7 @@ int str_is_valid_addr(char *s, uint32_t *addr)
    if(addr)
       *addr=0;
 
-   ret=sscanf(s,"%d.%d.%d.%d%n",&(ip[0]),&(ip[1]),&(ip[2]),&(ip[3]),&p);
+   ret=sscanf(s,"%i.%i.%i.%i%n",&(ip[0]),&(ip[1]),&(ip[2]),&(ip[3]),&p);
    if(ret!=4 || p!=strlen(s))
       return -1;
    else
