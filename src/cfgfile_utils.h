@@ -13,5 +13,6 @@ struct param_s
 int mea_load_cfgfile(char *file, struct param_s *keys_names_list, char *params[], uint16_t nb_params);
 int mea_write_cfgfile(char *file, struct param_s *keys_names_list, char *params[], uint16_t nb_params);
 int mea_clean_cfgfile(char *params[], uint16_t nb_params);
+int mea_create_file_from_template(char *template_file, char *dest_file, ...);
 
 #endif

@@ -217,3 +217,97 @@ int waitipaddr(char *iface, int timeout, char *addr)
    }
    return -1;
 }
+
+
+int is_netmask(uint32_t netmask)
+{
+// voir http://stackoverflow.com/questions/17401067/c-code-for-valid-netmask
+
+   uint32_t _netmask = ~netmask;
+
+   return ( ( (_netmask + 1) & _netmask ) == 0 ) - 1;
+}
+
+
+int addrs_in_same_network(uint32_t addr1, uint32_t addr2, uint32_t netmask)
+{
+   uint32_t n1,n2;
+
+   n1=addr1 & netmask;
+   n2=addr2 & netmask;
+
+   if(n1==n2)
+      return 0;
+   else
+      return -1;
+}
+
+
+int str_is_valid_addr(char *s, uint32_t *addr)
+{
+   int ret=0;
+   int ip[4],p;
+
+   if(addr)
+      *addr=0;
+
+   ret=sscanf(s,"%d.%d.%d.%d%n",&(ip[0]),&(ip[1]),&(ip[2]),&(ip[3]),&p);
+   if(ret!=4 || p!=strlen(s))
+      return -1;
+   else
+   {
+      int i=0;
+      for(;i<4;i++)
+      if(ip[i]<0 || ip[i]>255)
+         return -1;
+      else
+      {
+         if(addr)
+            *addr=((*addr) << 8) | (ip[i] & 0xFF);
+      }
+   }
+   return 0;
+}
+
+
+int str_is_valid_netmask(char *s, uint32_t *n)
+{
+   uint32_t netmask=0;
+   int valid=-1;
+
+   if(n)
+      *n=0;
+
+   if(str_is_valid_addr(s, &netmask)==0)
+   {
+      valid=is_netmask(netmask);
+      if(n && valid!=-1)
+         *n=netmask;
+   }
+   return valid;
+}
+
+
+#ifdef MODULE_R7
+int main(int argc, char *argv[])
+{
+   uint32_t n;
+
+   fprintf(stderr,"%d %x\n",str_is_valid_netmask("255.2.100.5",&n),n);
+   fprintf(stderr,"%d %x\n",str_is_valid_netmask("255.255.255.255",&n),n);
+   fprintf(stderr,"%d %x\n",str_is_valid_netmask("255.255.255.0",&n),n);
+   fprintf(stderr,"%d %x\n",str_is_valid_netmask("255.255.0.0",&n),n);
+   fprintf(stderr,"%d %x\n",str_is_valid_netmask("255.0.0.0",&n),n);
+   fprintf(stderr,"%d %x\n",str_is_valid_netmask("0.0.0.0",&n),n);
+   fprintf(stderr,"%d %x\n",str_is_valid_netmask("255.255.128.0",&n),n);
+   fprintf(stderr,"%d %x\n",str_is_valid_netmask("255.255.255.253",&n),n);
+
+   uint32_t a,b,c;
+
+   fprintf(stderr,"\n");
+   fprintf(stderr,"%d %x\n",str_is_valid_addr("192.168.0.1",&a),a);
+   fprintf(stderr,"%d %x\n",str_is_valid_addr("192.168.0.2",&b),b);
+   fprintf(stderr,"%d %x\n",str_is_valid_netmask("255.255.255.0",&c),c);
+   fprintf(stderr,"n=%d\n",addrs_in_same_network(a,b,c));
+}
+#endif

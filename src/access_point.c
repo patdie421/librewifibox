@@ -1,18 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+
 #include "memfile.h"
+#include "cfgfile_utils.h"
 
 #include "access_point.h"
 
+
 int restart_hostapd_service()
 {
-   int ret=0;
-
-   ret=system("/usr/sbin/service hostapd stop");
-   if(ret!=0)
-      return ret;
-   sleep(1);
-   return system("/usr/sbin/service hostapd start");
+   system("/usr/sbin/service hostapd restart");
 }
 
 
@@ -26,6 +25,19 @@ int reboot()
 
 int create_hostapd_cfg(char *template_file, char *dest_file, char *iface, char *essid, char *passwd)
 {
+   return mea_create_file_from_template(template_file, dest_file, "iface", iface, "essid", essid, "passwd", passwd, NULL);
+}
+
+
+int create_interfaces_cfg(char *template_file, char *dest_file, char *my_ip, char *my_netmask)
+{
+   return mea_create_file_from_template(template_file, dest_file, "boxip", my_ip, "netmask", my_netmask, NULL);
+}
+
+
+/*
+int create_hostapd_cfg_old(char *template_file, char *dest_file, char *iface, char *essid, char *passwd)
+{
    FILE *fd_in=NULL, *fd_out=NULL;
    struct memfile_s *mf=NULL;
    char line[255];
@@ -36,7 +48,7 @@ int create_hostapd_cfg(char *template_file, char *dest_file, char *iface, char *
    {
       fprintf(stderr,"can't open template file %s : ", template_file);
       perror("");
-      goto populate_hostapcfg_clean_exit;
+      goto create_hostapcfg_clean_exit;
    }
 
    mf=memfile_init(memfile_alloc(), AUTOEXTEND, 1024, 1);
@@ -53,7 +65,8 @@ int create_hostapd_cfg(char *template_file, char *dest_file, char *iface, char *
          {
             if(line[i]=='[' && line[i+1]=='[')
             {
-               i+=2;
+
+
                int j=0;
                int flag=-1;
                for(;line[i];i++)
@@ -87,13 +100,13 @@ int create_hostapd_cfg(char *template_file, char *dest_file, char *iface, char *
                   else
                   {
                      fprintf(stderr,"unknow substitution tag (%s) at line %d\n",var,lnum);
-                     goto populate_hostapcfg_clean_exit;
+                     goto create_hostapcfg_clean_exit;
                   }
                }
                else
                {
                   fprintf(stderr,"Template error line %d\n", lnum);
-                  goto populate_hostapcfg_clean_exit;
+                  goto create_hostapcfg_clean_exit;
                }
                var[0]=0;
             }
@@ -110,7 +123,7 @@ int create_hostapd_cfg(char *template_file, char *dest_file, char *iface, char *
    {
       fprintf(stderr,"can't create/open %s : ", dest_file);
       perror("");
-      goto populate_hostapcfg_clean_exit;
+      goto create_hostapcfg_clean_exit;
    }
 
    int i=0;
@@ -124,7 +137,7 @@ int create_hostapd_cfg(char *template_file, char *dest_file, char *iface, char *
 
    ret_code=0;
 
-populate_hostapcfg_clean_exit:
+create_hostapcfg_clean_exit:
    if(fd_in!=NULL)
       fclose(fd_in);
 
@@ -137,3 +150,4 @@ populate_hostapcfg_clean_exit:
 
    return ret_code;
 }
+*/

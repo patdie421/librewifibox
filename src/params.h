@@ -9,6 +9,8 @@ enum user_params_id_e {
    FREE_PASSWORD_ID,
    MY_ESSID_ID,
    MY_PASSWORD_ID,
+   MY_IP_AND_NETMASK_ID,
+   MY_DHCP_RANGE_ID,
    NB_USERPARAMS
 };
 

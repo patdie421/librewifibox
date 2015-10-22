@@ -1,0 +1,13 @@
+#The start and end of the IP lease block
+start    [[start]]
+end      [[end]]
+
+#The interface that udhcpd will use
+interface   [[iface]]
+
+option  subnet  [[subnet]]
+opt     router  [[boxip]]
+opt     wins    [[boxip]]
+option  dns     8.8.8.8
+option  domain  local
+option  lease   864000

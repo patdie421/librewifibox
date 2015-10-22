@@ -3,11 +3,13 @@
 #include "params.h"
 
 struct param_s user_params_keys_list[]={
-   {"admin_password",  ADMIN_PASSWORD_ID, "admin"},
-   {"free_id",         FREE_ID_ID, ""},
-   {"free_password",   FREE_PASSWORD_ID, ""},
-   {"my_essid",        MY_ESSID_ID, ""},
-   {"my_password",     MY_PASSWORD_ID, ""},
+   {"admin_password",     ADMIN_PASSWORD_ID, "admin"},
+   {"free_id",            FREE_ID_ID, ""},
+   {"free_password",      FREE_PASSWORD_ID, ""},
+   {"my_essid",           MY_ESSID_ID, ""},
+   {"my_password",        MY_PASSWORD_ID, ""},
+   {"my_ip_and_netmask",  MY_IP_AND_NETMASK_ID, "192.168.10.1, 255.255.255.0"},
+   {"my_dhcp_range",      MY_DHCP_RANGE_ID, "192.168.10.100, 192.168.10.200"},
    {NULL,0,NULL}
 };
 
