@@ -11,6 +11,7 @@
 #include "i2c_hd44780_pcf8574.h"
 #include "lcd.h"
 
+
 enum token_id_e {
    _FIRST_PARAM=0,
 
@@ -109,7 +110,7 @@ static int _load_cfgfile(char *file, char *params[])
       if(fgets(line,sizeof(line),fd) != NULL)
       {
          i++;
-         // suppression du commentaire éntuellement prént dans la ligne
+         // suppression du commentaire éntuellement présent dans la ligne
          strsplit(line, '#', noncomment, 2);
          char *keyvalue=strtrim(noncomment[0]);
          if(strlen(keyvalue)==0)
@@ -243,14 +244,14 @@ struct lcd_s *i2c_hd44780_lcd_alloc( char *params[])
          sscanf(params[PCF8574_PIN_MAP_ID],"%d,%d,%d,%d,%d,%d,%d,%d%n",&pcf8574_map[0],&pcf8574_map[1],&pcf8574_map[2],&pcf8574_map[3],&pcf8574_map[4],&pcf8574_map[5],&pcf8574_map[6],&pcf8574_map[7],&n);
          if(n != strlen(params[PCF8574_PIN_MAP_ID]))
          {
-             fprintf(stderr,"%s - incorrect or incomplet pcf8574 mapping\n", error_str);
+             fprintf(stderr,"%s - incorrect or incomplet pcf8574 pins mapping\n", error_str);
              return NULL;
          }
          for(i=0;i<8;i++)
          {
             if(pcf8574_map[i]<0 || pcf8574_map[i]>7)
             {
-               fprintf(stderr,"%s - incorrect pcf8574 mapping value (%d)\n", error_str, pcf8574_map[i]);
+               fprintf(stderr,"%s - incorrect pcf8574 pin value (%d)\n", error_str, pcf8574_map[i]);
                return NULL;
             }
 
@@ -258,7 +259,7 @@ struct lcd_s *i2c_hd44780_lcd_alloc( char *params[])
             {
                if(pcf8574_map[i]==pcf8574_map[j])
                {
-                  fprintf(stderr,"%s - duplicate pcf8574 mapping value (%d)\n", error_str, pcf8574_map[i]);
+                  fprintf(stderr,"%s - duplicate pcf8574 pin value (%d)\n", error_str, pcf8574_map[i]);
                   lcd_free(&lcd);
                   return NULL;                    
                }

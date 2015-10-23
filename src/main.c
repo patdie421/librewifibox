@@ -20,7 +20,6 @@
 #include "liblcd/lcd.h"
 
 #include "mea_verbose.h"
-//#include "mea_utils.h"
 #include "mea_timer.h"
 #include "mea_gpio.h"
 #include "mea_string_utils.h"
@@ -147,7 +146,7 @@ void sigterm_handler(int signo)
 
 void sighup_handler(int signo)
 {
-   if (signo == SIGHUP)
+   if (signo == SIGHUP) // demande de rechargement de la configuration
    {
       char free_id_prev[20];
       char free_passwd_prev[32];
@@ -159,6 +158,7 @@ void sighup_handler(int signo)
 
       VERBOSE(2) mea_log_printf("%s (%s) : reload new parameters\n", INFO_STR, __func__);
 
+      // sauvegarde temporaire des anciens valeurs
       strncpy(free_id_prev, user_params[FREE_ID_ID],sizeof(free_id_prev));
       strncpy(free_passwd_prev, user_params[FREE_PASSWORD_ID], sizeof(free_passwd_prev));
       strncpy(hostapd_essid_prev, user_params[MY_ESSID_ID], sizeof(hostapd_essid_prev));
@@ -166,7 +166,7 @@ void sighup_handler(int signo)
       strncpy(ip_netmask_prev, user_params[MY_IP_AND_NETMASK_ID], sizeof(ip_netmask_prev));
       strncpy(dhcp_start_end_prev, user_params[MY_DHCP_RANGE_ID], sizeof(dhcp_start_end_prev));
 
-
+      // chargement des nouvelles valeurs
       int ret=mea_load_cfgfile(sys_params[CONNECTIONCFGFILE_ID], user_params_keys_list, user_params, NB_USERPARAMS);
       if(ret<0)
       {
@@ -175,30 +175,29 @@ void sighup_handler(int signo)
          return;
       }
 
-      
+     
       if( strcmp(hostapd_essid_prev,  user_params[MY_ESSID_ID])!=0 ||
           strcmp(hostapd_passwd_prev, user_params[MY_PASSWORD_ID])!=0 ||
           strcmp(ip_netmask_prev,     user_params[MY_IP_AND_NETMASK_ID])!=0 ||
           strcmp(dhcp_start_end_prev, user_params[MY_DHCP_RANGE_ID])!=0)
       {
-          set_reboot_flag(1);
+          set_reboot_flag(1); // pour que gui affiche une page d'info reboot
 
-          fprintf(stderr,"ICI\n");
+          // reconfiguration des fichiers systeme
           create_hostapd_cfg(sys_params[HOSTAPD_CFG_TEMPLATE_ID], "/etc/hostapd/hostapd.conf", sys_params[HOSTAPD_IFACE_ID], user_params[MY_ESSID_ID], user_params[MY_PASSWORD_ID]);
           create_interfaces_cfg(sys_params[INTERFACES_TEMPLATE_ID], "/etc/network/interfaces", user_params[MY_IP_AND_NETMASK_ID]);
           create_udhcpd_cfg(sys_params[UDHCPD_CFG_TEMPLATE_ID], "/etc/udhcpd.conf", sys_params[HOSTAPD_IFACE_ID], user_params[MY_IP_AND_NETMASK_ID], user_params[MY_DHCP_RANGE_ID]);
-          fprintf(stderr,"LA\n");
 
           VERBOSE(2) mea_log_printf("%s (%s) : new parameters need a reboot\n", INFO_STR, __func__);
 
           sleep(5);
 
-//          reboot();
+          reboot();
 
           stop_all(0);
       }
       else
-          set_reboot_flag(0);
+          set_reboot_flag(0); // pas besoin de rebooter pour les autres changements de config
 
       if( strcmp(free_id_prev, user_params[FREE_ID_ID])!=0 ||
           strcmp(free_passwd_prev, user_params[FREE_PASSWORD_ID])!=0)
@@ -232,6 +231,7 @@ int main(int argc, char *argv[])
    char *internet_essid=NULL;
    char *free_id=NULL;
    char *free_password=NULL;
+   int http_port=-1, https_port=-1;
 
    char lan_addr[16];
 
@@ -301,7 +301,6 @@ int main(int argc, char *argv[])
    }
 
    // ports des services http(s)
-   int http_port=-1, https_port=-1;
    if(mea_strisnumeric(sys_params[HTTP_PORT_ID])==0)
       http_port=atoi(sys_params[HTTP_PORT_ID]);
    else
@@ -483,8 +482,8 @@ int main(int argc, char *argv[])
    //
    struct guiServerData_s guiServer_start_stop_params;
    guiServer_start_stop_params.addr=lan_addr;
-   strncpy(guiServer_start_stop_params.home,sys_params[WWW_PATH_ID],sizeof(guiServer_start_stop_params.home));
-   strncpy(guiServer_start_stop_params.sslpem,sys_params[SSLPEM_PATH_ID],sizeof(guiServer_start_stop_params.sslpem));
+   strncpy(guiServer_start_stop_params.home, sys_params[WWW_PATH_ID], sizeof(guiServer_start_stop_params.home));
+   strncpy(guiServer_start_stop_params.sslpem, sys_params[SSLPEM_PATH_ID], sizeof(guiServer_start_stop_params.sslpem));
    guiServer_start_stop_params.http_port=http_port;
    guiServer_start_stop_params.https_port=https_port;
    guiServer_monitoring_id=process_register("guiServer");
@@ -549,10 +548,10 @@ int main(int argc, char *argv[])
    process_set_start_stop(job_id, logfile_rotation_job, NULL, NULL, 1);
    process_set_type(job_id, JOB);
 //   process_job_set_scheduling_data(job_id, "0,5,10,15,20,25,30,35,40,45,50,55|*|*|*|*", 0);
-   process_job_set_scheduling_data(job_id, "0|13,21,5|*|*|*", 0);
+   process_job_set_scheduling_data(job_id, "0|13,21,5|*|*|*", 0); // rotation des log 3x par jour
    process_set_group(job_id, 1);
 
-//   mea_rotate_open_log_file(MEA_STDERR, log_file, 5);
+   // au démarrage : rotation des log.
    process_run_task(job_id, NULL, 0);
 
    for(;;) // boucle principale (gestion des i/o ihm)

@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-#include "configure.h"
 
 struct lcd_s
 {
@@ -33,15 +32,15 @@ enum backlight_state_e { ON=1, OFF=0 };
 
 struct lcd_s *lcd_alloc();
 
-void          lcd_free(struct lcd_s **lcd);
-int           lcd_init(struct lcd_s *lcd, int reset);
-int           lcd_release(struct lcd_s *lcd);
+void lcd_free(struct lcd_s **lcd);
+int  lcd_init(struct lcd_s *lcd, int reset);
+int  lcd_release(struct lcd_s *lcd);
 
-int           lcd_backlight(struct lcd_s *lcd, enum backlight_state_e state);
-void          lcd_backlight_inversion(struct lcd_s *lcd, int inv);
-int           lcd_clear(struct lcd_s *lcd);
-int           lcd_gotoxy(struct lcd_s *lcd, uint16_t x, uint16_t y);
-int           lcd_print(struct lcd_s *lcd, char *str);
-int           lcd_printf(struct lcd_s *lcd, char const* fmt, ...);
+int  lcd_backlight(struct lcd_s *lcd, enum backlight_state_e state);
+void lcd_backlight_inversion(struct lcd_s *lcd, int inv);
+int  lcd_clear(struct lcd_s *lcd);
+int  lcd_gotoxy(struct lcd_s *lcd, uint16_t x, uint16_t y);
+int  lcd_print(struct lcd_s *lcd, char *str);
+int  lcd_printf(struct lcd_s *lcd, char const* fmt, ...);
 
 #endif

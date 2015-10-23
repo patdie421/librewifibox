@@ -428,7 +428,7 @@ mini_display_init_clean_exit:
    return -1;
 }
 
-#ifdef MINIDISPLAY_TEST
+#ifdef MODULE_R7
 int main(int argc, char *argv[])
 {
    struct mini_display_s display;
