@@ -10,9 +10,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "mea_verbose.h"
-
-#include "string_utils.h"
+#include "mea_string_utils.h"
 
 
 char *mea_strltrim(char *s)
@@ -89,7 +87,6 @@ char *mea_strltrim_alloc(char *s)
    s_trimed=mea_string_alloc_and_copy(s_trimed);
    if(!s_trimed)
    {
-      DEBUG_SECTION PRINT_MALLOC_ERROR;
       return NULL;
    }
    else
@@ -141,7 +138,6 @@ char *mea_strrtrim_alloc(char *s)
    s_trimed=mea_string_alloc_and_copy(s);
    if(!s_trimed)
    {
-      DEBUG_SECTION PRINT_MALLOC_ERROR;
       return NULL;
    }
    else
@@ -209,7 +205,6 @@ char *mea_strtrim_alloc(char *s)
          return s_trimed;
       else
       {
-         DEBUG_SECTION PRINT_MALLOC_ERROR;
          return NULL;
       }
    }
@@ -440,7 +435,6 @@ char *mea_string_alloc_and_copy(char *str)
       strcpy(new_str, str);
    else
    {  
-      DEBUG_SECTION PRINT_MALLOC_ERROR;
       return NULL;
    }
    return new_str;
@@ -470,7 +464,6 @@ char *mea_string_free_alloc_and_copy(char **org_str, char *str)
       strcpy(*org_str, str);
    else
    {
-      DEBUG_SECTION PRINT_MALLOC_ERROR;
       return NULL;
    }
    return *org_str;

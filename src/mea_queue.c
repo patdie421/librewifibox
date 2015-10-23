@@ -5,14 +5,14 @@
  *  Copyright 2012 -. All rights reserved.
  *
  */
-#include "queue.h"
+#include "mea_queue.h"
 #include "error.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
 
-unsigned long nb_queue_elem(queue_t *queue)
+unsigned long mea_queue_nb_elem(mea_queue_t *queue)
 {
    if(!queue)
       return -1;
@@ -21,14 +21,14 @@ unsigned long nb_queue_elem(queue_t *queue)
 }
 
 
-mea_error_t in_queue_elem(queue_t *queue, void *data)
+mea_error_t mea_queue_in_elem(mea_queue_t *queue, void *data)
 {
-   struct queue_elem *new;
+   struct mea_queue_elem *new;
    
    if(!queue)
       return ERROR;
 
-   new=(struct queue_elem *)malloc(sizeof(struct queue_elem));
+   new=(struct mea_queue_elem *)malloc(sizeof(struct mea_queue_elem));
    if(!new)
       return ERROR;
    
@@ -58,9 +58,9 @@ mea_error_t in_queue_elem(queue_t *queue, void *data)
 }
 
 
-mea_error_t out_queue_elem(queue_t *queue, void **data)
+mea_error_t mea_queue_out_elem(mea_queue_t *queue, void **data)
 {
-   struct queue_elem *ptr;
+   struct mea_queue_elem *ptr;
    
    if(!queue)
       return ERROR;
@@ -95,7 +95,7 @@ mea_error_t out_queue_elem(queue_t *queue, void **data)
 }
 
 
-mea_error_t init_queue(queue_t *queue)
+mea_error_t mea_queue_init(mea_queue_t *queue)
 {
    if(!queue)
       return ERROR;
@@ -115,7 +115,7 @@ mea_error_t init_queue(queue_t *queue)
 }
 
 
-mea_error_t first_queue(queue_t *queue)
+mea_error_t mea_queue_first(mea_queue_t *queue)
 {
     if(!queue || !queue->first)
       return ERROR;
@@ -125,7 +125,7 @@ mea_error_t first_queue(queue_t *queue)
 }
 
 
-mea_error_t last_queue(queue_t *queue)
+mea_error_t mea_queue_last(mea_queue_t *queue)
 {
    if(!queue || !queue->last)
       return ERROR;
@@ -135,7 +135,7 @@ mea_error_t last_queue(queue_t *queue)
 }
 
 
-mea_error_t next_queue(queue_t *queue)
+mea_error_t mea_queue_next(mea_queue_t *queue)
 {
    if(!queue || !queue->current)
       return ERROR;
@@ -151,7 +151,7 @@ mea_error_t next_queue(queue_t *queue)
 }
 
 
-mea_error_t prev_queue(queue_t *queue)
+mea_error_t mea_queue_prev(mea_queue_t *queue)
 {
    if(!queue || !queue->current)
       return ERROR;
@@ -167,9 +167,9 @@ mea_error_t prev_queue(queue_t *queue)
 }
 
 
-mea_error_t clean_queue(queue_t *queue, free_data_f f)
+mea_error_t mea_queue_cleanup(mea_queue_t *queue, mea_queue_free_data_f f)
 {
-   struct queue_elem *ptr;
+   struct mea_queue_elem *ptr;
    
    if(!queue)
       return ERROR;
@@ -218,7 +218,7 @@ mea_error_t clean_queue(queue_t *queue, free_data_f f)
 }
 
 
-mea_error_t current_queue(queue_t *queue, void **data)
+mea_error_t mea_queue_current(mea_queue_t *queue, void **data)
 {
    if(!queue)
       return ERROR;
@@ -232,7 +232,7 @@ mea_error_t current_queue(queue_t *queue, void **data)
 }
 
 
-mea_error_t remove_current_queue(queue_t *queue)
+mea_error_t mea_queue_remove_current(mea_queue_t *queue)
 {
    if(!queue)
       return ERROR;
@@ -250,9 +250,9 @@ mea_error_t remove_current_queue(queue_t *queue)
        return NOERROR;
     }
    
-   struct queue_elem *prev;
-   struct queue_elem *next;
-   struct queue_elem *old;
+   struct mea_queue_elem *prev;
+   struct mea_queue_elem *next;
+   struct mea_queue_elem *old;
 
    prev=queue->current->prev;
    next=queue->current->next;
@@ -288,9 +288,9 @@ mea_error_t remove_current_queue(queue_t *queue)
 }
 
 
-mea_error_t process_all_queue_elem(queue_t *queue, void (*f)(void *))
+mea_error_t mea_queue_process_all_elem_data(mea_queue_t *queue, void (*f)(void *))
 {
-   struct queue_elem *ptr;
+   struct mea_queue_elem *ptr;
    
    if(!queue)
       return ERROR;
@@ -309,9 +309,9 @@ mea_error_t process_all_queue_elem(queue_t *queue, void (*f)(void *))
 }
 
 
-mea_error_t queue_find_elem(queue_t *queue, compare_data_f cmpf, void *data_to_find, void **data)
+mea_error_t mea_queue_find_elem(mea_queue_t *queue, mea_queue_compare_data_f cmpf, void *data_to_find, void **data)
 {
-   struct queue_elem *ptr;
+   struct mea_queue_elem *ptr;
    
    *data=NULL;
    if(!queue)
@@ -336,7 +336,7 @@ mea_error_t queue_find_elem(queue_t *queue, compare_data_f cmpf, void *data_to_f
 
 
 #ifdef QUEUE_ENABLE_INDEX
-mea_error_t queue_get_elem_by_index(queue_t *queue, int i, void **data)
+mea_error_t mea_queue_get_elem_by_index(mea_queue_t *queue, int i, void **data)
 {
    *data=NULL;
    if(!queue || !queue->index)
@@ -354,7 +354,7 @@ mea_error_t queue_get_elem_by_index(queue_t *queue, int i, void **data)
 }
 
 
-int _create_index(queue_t *queue)
+static int _create_index(mea_queue_t *queue)
 {
    if(queue->nb_elem<=0)
       return ERROR;
@@ -363,7 +363,7 @@ int _create_index(queue_t *queue)
       return ERROR;
 
    int i=0;
-   struct queue_elem *ptr;
+   struct mea_queue_elem *ptr;
    ptr=queue->first;
    do
    {
@@ -378,7 +378,7 @@ int _create_index(queue_t *queue)
 }
 
 
-mea_error_t queue_create_index(queue_t *queue, compare_data_f f)
+mea_error_t mea_queue_create_index(mea_queue_t *queue, mea_queue_compare_data_f f)
 {
    if(!queue)
       return ERROR;
@@ -414,7 +414,7 @@ mea_error_t queue_create_index(queue_t *queue, compare_data_f f)
 }
 
 
-mea_error_t queue_recreate_index(queue_t *queue, char force)
+mea_error_t mea_queue_recreate_index(mea_queue_t *queue, char force)
 {
    void  **old_index=NULL;
    
@@ -458,7 +458,7 @@ mea_error_t queue_recreate_index(queue_t *queue, char force)
 }
 
 
-mea_error_t queue_remove_index(queue_t *queue)
+mea_error_t mea_queue_remove_index(mea_queue_t *queue)
 {
    if(!queue)
       return ERROR;
@@ -471,7 +471,7 @@ mea_error_t queue_remove_index(queue_t *queue)
 }
 
 
-mea_error_t queue_find_elem_by_index(queue_t *queue, void *data_to_find, void **data)
+mea_error_t mea_queue_find_elem_by_index(mea_queue_t *queue, void *data_to_find, void **data)
 {
    if(!queue || !queue->index || !queue->index_status || !queue->nb_elem)
       return ERROR;
@@ -483,7 +483,7 @@ mea_error_t queue_find_elem_by_index(queue_t *queue, void *data_to_find, void **
 
    *data=NULL;
 
-   struct queue_elem _tmp_qe;
+   struct mea_queue_elem _tmp_qe;
 
    _tmp_qe.d=data_to_find;
    _tmp_qe.next=NULL;
@@ -511,21 +511,21 @@ mea_error_t queue_find_elem_by_index(queue_t *queue, void *data_to_find, void **
 }
 
 
-void *queue_get_data(void *e)
+void *mea_queue_get_data(void *e)
 {
-   struct queue_elem *_e = (struct queue_elem *)e;
+   struct mea_queue_elem *_e = (struct mea_queue_elem *)e;
 
    return _e->d;
 }
 
 
-char queue_index_status(queue_t *queue)
+char mea_queue_get_index_status(mea_queue_t *queue)
 {
    return queue->index_status;
 }
 #endif
 
-#ifdef QUEUETEST
+#ifdef MODULE_R7
 #include <stdio.h>
 #include <string.h>
 

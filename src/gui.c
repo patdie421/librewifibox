@@ -11,14 +11,16 @@
 #include "gui.h"
 
 #include "mea_verbose.h"
-#include "mongoose.h"
-#include "string_utils.h"
 #include "mea_utils.h"
-#include "queue.h"
-#include "memfile.h"
+#include "mea_ip_utils.h"
+#include "mea_string_utils.h"
+#include "mea_queue.h"
+
+#include "mea_memfile.h"
+
+#include "mongoose.h"
 #include "params.h"
 #include "iwlib.h"
-#include "mea_ip_utils.h"
 
 static int reboot_flag=-1;
 
@@ -52,7 +54,7 @@ struct session_s
    int counter;
 };
 
-queue_t sessions;
+mea_queue_t sessions;
 pthread_rwlock_t sessions_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 int isinit_sessions=0;
@@ -150,35 +152,35 @@ char *new_id_session_alloc(int size)
 }
 
 
-static struct session_s *find_session(queue_t *sessions, char *session)
+static struct session_s *find_session(mea_queue_t *sessions, char *session)
 {
    struct session_s *e;
-   if(first_queue(sessions)==0)
+   if(mea_queue_first(sessions)==0)
    {
-      while(current_queue(sessions, (void **)&e)==0)
+      while(mea_queue_current(sessions, (void **)&e)==0)
       {
          if(strcmp(session, e->id) == 0)
          {
             return e;
          }
-         next_queue(sessions);
+         mea_queue_next(sessions);
       }
    }
    return NULL;
 }
 
 
-int page_reboot(struct mg_connection *conn, struct memfile_s *mf, char *wifinetwork)
+int page_reboot(struct mg_connection *conn, struct mea_memfile_s *mf, char *wifinetwork)
 {
-   memfile_printf(
+   mea_memfile_printf(
       mf,
       "<html>"
          "<head>"
             "<title>"
                "LibreWifi"
             "</title>");
-   memfile_include(mf, "/data/librewifi2/www/include/libs.inc", 0);
-   memfile_printf(
+   mea_memfile_include(mf, "/data/librewifi2/www/include/libs.inc", 0);
+   mea_memfile_printf(
       mf,
 	"</head>"
         "<body>"
@@ -199,7 +201,7 @@ int page_reboot(struct mg_connection *conn, struct memfile_s *mf, char *wifinetw
 static int page_index(struct mg_connection *conn, struct session_s *session)
 {
    const char *cl;
-   struct memfile_s *mf=NULL;
+   struct mea_memfile_s *mf=NULL;
    int error=0;
    char pass1[32]="", pass2[32]="";
    char essid_name[IW_ESSID_MAX_SIZE+1]="", essid_pass[64]="";
@@ -228,7 +230,7 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
       return 1;
    }
 
-   mf=memfile_init(memfile_alloc(),AUTOEXTEND,1024,1);
+   mf=mea_memfile_init(mea_memfile_alloc(),AUTOEXTEND,1024,1);
    if(mf==NULL)
    {
       _httpResponse(conn, "Internal error");
@@ -375,7 +377,7 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
       mea_strtrim2(dhcp_end);
    }
 
-   memfile_printf(
+   mea_memfile_printf(
       mf,
       "<html>"
          "<head>"
@@ -383,9 +385,9 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
                "LibreWifi"
             "</title>"
    );
-   memfile_include(mf, "/data/librewifi2/www/include/libs.inc", 0);
+   mea_memfile_include(mf, "/data/librewifi2/www/include/libs.inc", 0);
 
-   memfile_printf(
+   mea_memfile_printf(
       mf,
 	"</head>"
 
@@ -433,70 +435,70 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
    {     
       if(error)
       { 
-         memfile_printf(mf, 
+         mea_memfile_printf(mf, 
 //              "<div id=\"info_box\" style=\"margin-bottom:15px;padding-bottom:10px;padding-top:10px;border:1px solid red;color:red;\">");
               "<div id=\"info_box\" style=\"padding:5px;margin-bottom:15px;border:1px solid red;color:red;\">");
-         memfile_printf(mf, 
+         mea_memfile_printf(mf, 
               "<DIV style=\"margin-bottom:10px;\"><B>Data not saved</B></DIV>", error);
          if(error & 0b00000001)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: password confirmation doesn't match password</DIV>", error);
          if(error & 0b00001000)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: essid name not set or too long (need 1 to 32 caracters)</DIV>", error);
          if(error & 0b00000010)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: incorrect essid passphrase length (8 to 63 caracters needed)</DIV>", error);
          if(error & 0b00000100)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: essid pass can only have printable characters</DIV>", error);
          if(error & 0b00010000)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: incorrect freewifi password length (32 caracters max)</DIV>", error);
          if(error & 0b00100000)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: incorrect freewifi user length (32 caracters max)</DIV>", error);
          if((error & 0b01000000) || (error & 0b0010000000000000))
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: invalid box ip address</DIV>", error);
          if(error & 0b10000000)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: invalid netmask</DIV>", error);
          if(error & 0b0000000100000000)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: invalid first dhcp address</DIV>", error);
          if(error & 0b0000001000000000)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: invalid last dhcp address</DIV>", error);
          if(error & 0b0000010000000000)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: first dhcp address not in box network</DIV>", error);
          if(error & 0b0000100000000000)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: last dhcp address not in box network</DIV>", error);
          if(error & 0b0001000000000000)
-            memfile_printf(mf, 
+            mea_memfile_printf(mf, 
               "<DIV>ERROR: box ip address in dhcp range</DIV>", error);
-         memfile_printf(mf, 
+         mea_memfile_printf(mf, 
            "</div>");
       }
       else
       {
-         memfile_printf(mf, 
+         mea_memfile_printf(mf, 
            "<div id=\"info_box\" style=\"padding:5px;margin-bottom:15px;border:1px solid green;color:green;\">");
-         memfile_printf(mf, 
+         mea_memfile_printf(mf, 
            "<DIV><B>New parameters successully saved</B></DIV>");
-         memfile_printf(mf, 
+         mea_memfile_printf(mf, 
            "</div>");
       }
    }
    else
    {
-      memfile_printf(mf, 
+      mea_memfile_printf(mf, 
            "<div id=\"info_box\" style=\"display:none;padding:5px;margin-bottom:15px;border:1px solid black;color:black;\"></DIV>");
    }
 
-   memfile_printf(
+   mea_memfile_printf(
       mf,
            "<form id=\"index_fm\" method=post>"
               "<div id=\"p1\" class=\"easyui-panel\" data-options=\"style:{margin:'0 auto'}\" title=\"Admin account\" style=\"width:700px;padding:10px;margin-bottom:25px;\">"
@@ -639,7 +641,7 @@ page_index_clean_exit:
    
    if(mf)
    {
-      memfile_release(mf);
+      mea_memfile_release(mf);
       free(mf);
       mf=NULL;
    }
@@ -655,7 +657,7 @@ static int page_logout(struct mg_connection *conn, struct session_s *session)
    struct session_s *e=find_session(&sessions, session->id);
    if(e != NULL)
    {
-      remove_current_queue(&sessions);
+      mea_queue_remove_current(&sessions);
       free(e);
       e=NULL;
    }
@@ -679,7 +681,7 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
    char admin_pass[20];
    int error=-1;
 
-   struct memfile_s *mf=NULL;
+   struct mea_memfile_s *mf=NULL;
 
    char *params[NB_USERPARAMS];
 
@@ -723,21 +725,21 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
       error=0;
    }
 
-   mf=memfile_init(memfile_alloc(),AUTOEXTEND,1024,1);
+   mf=mea_memfile_init(mea_memfile_alloc(),AUTOEXTEND,1024,1);
    if(mf==NULL)
    {
       _httpResponse(conn, "Internal error");
       return 1;
    }
 
-   memfile_printf(mf,
+   mea_memfile_printf(mf,
       "<html>"
       "<head>"
          "<title>"
             "LibreWifi"
          "</title>");
-   memfile_include(mf, "/data/librewifi2/www/include/libs.inc", 0);
-   memfile_printf(mf,
+   mea_memfile_include(mf, "/data/librewifi2/www/include/libs.inc", 0);
+   mea_memfile_printf(mf,
       "</head>"
       
       "<script type=\"text/javascript\">"
@@ -765,13 +767,13 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
 
    if(error==0)
    {
-      memfile_printf(mf,
+      mea_memfile_printf(mf,
             "<div id=\"info_box\" style=\"padding:5px;margin-bottom:15px;border:1px solid red;color:red;\">"
                "<div><B>Can't validate user password. Check it !</B></div>"
             "</div>");
    }
 
-   memfile_printf(mf,
+   mea_memfile_printf(mf,
             "<div class=\"easyui-panel\" title=\"Connection\" style=\"width:400px;padding:30px 70px 20px 70px;margin:0 auto\">"
                "<form id=login_fm method=post>"
                   "<div style=\"margin-bottom:10px\">"
@@ -794,7 +796,7 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
 
    if(mf)
    {
-      memfile_release(mf);
+      mea_memfile_release(mf);
       free(mf);
       mf=NULL;
    }
@@ -873,9 +875,9 @@ static int _begin_request_handler(struct mg_connection *conn)
 
       pthread_cleanup_push( (void *)pthread_rwlock_unlock, (void *)&sessions_rwlock );
       pthread_rwlock_wrlock(&sessions_rwlock);
-      if(first_queue(&sessions)==0)
+      if(mea_queue_first(&sessions)==0)
       {
-         while(current_queue(&sessions, (void **)&e)==0)
+         while(mea_queue_current(&sessions, (void **)&e)==0)
          {
             if(strcmp(mea_sessid, e->id) == 0)
             {
@@ -883,7 +885,7 @@ static int _begin_request_handler(struct mg_connection *conn)
 
                if(difftime(now, e->last)>(10.0*60.0)) // 10 mn pour une session
                {
-                  remove_current_queue(&sessions);
+                  mea_queue_remove_current(&sessions);
                   free(e);
                   e=NULL;
                }
@@ -894,7 +896,7 @@ static int _begin_request_handler(struct mg_connection *conn)
                }
                break;
             }
-            next_queue(&sessions);
+            mea_queue_next(&sessions);
          }
       }
       pthread_rwlock_unlock(&sessions_rwlock);
@@ -926,7 +928,7 @@ static int _begin_request_handler(struct mg_connection *conn)
       session->last=session->first;
       session->logged_in=0;
       session->counter=0;
-      in_queue_elem(&sessions,(void *)session);
+      mea_queue_in_elem(&sessions,(void *)session);
 
       free(id_session);
 
@@ -1059,7 +1061,7 @@ mea_error_t start_httpServer(char *home, char *bind_addr, uint16_t port_http, ui
       if(port_https==0)
          port_https=7443;
 
-      init_queue(&sessions);
+      mea_queue_init(&sessions);
 
       val_listening_ports=(char *)malloc(80);
 

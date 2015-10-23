@@ -12,10 +12,12 @@
 #include <pthread.h>
 
 #include "processManager.h"
-#include "queue.h"
+
 #include "mea_verbose.h"
-#include "string_utils.h"
+#include "mea_string_utils.h"
 #include "mea_utils.h"
+
+#include "mea_queue.h"
 
 #ifndef NO_DATASEND
 #include "sockets_utils.h"
@@ -34,8 +36,8 @@ void _indicators_free_queue_elem(void *e)
 #ifdef QUEUE_ENABLE_INDEX
 int _indicators_cmp(void *e1, void *e2)
 {
-   struct process_indicator_s *_e1 = (struct process_indicator_s *)queue_get_data(e1);
-   struct process_indicator_s *_e2 = (struct process_indicator_s *)queue_get_data(e2);
+   struct process_indicator_s *_e1 = (struct process_indicator_s *)mea_queue_get_data(e1);
+   struct process_indicator_s *_e2 = (struct process_indicator_s *)mea_queue_get_data(e2);
 
    return strcmp(_e1->name, _e2->name);   
 }
@@ -88,11 +90,11 @@ int _indicator_exist(int id, char *name)
    {
       struct process_indicator_s *e;
 
-      if(first_queue(managed_processes.processes_table[id]->indicators_list)==0)
+      if(mea_queue_first(managed_processes.processes_table[id]->indicators_list)==0)
       {
          while(1)
          {
-            if(current_queue(managed_processes.processes_table[id]->indicators_list, (void **)&e)==0)
+            if(mea_queue_current(managed_processes.processes_table[id]->indicators_list, (void **)&e)==0)
             {
                if(strcmp(name, e->name) == 0)
                {
@@ -100,7 +102,7 @@ int _indicator_exist(int id, char *name)
                   break;
                }
                else
-                  next_queue(managed_processes.processes_table[id]->indicators_list);
+                  mea_queue_next(managed_processes.processes_table[id]->indicators_list);
             }
             else
                break;
@@ -351,18 +353,18 @@ int managed_processes_indicators_list(char *message, int l_message)
             return -1;
 
          if(managed_processes.processes_table[i]->indicators_list &&
-            first_queue(managed_processes.processes_table[i]->indicators_list)==0)
+            mea_queue_first(managed_processes.processes_table[i]->indicators_list)==0)
          {
             while(1)
             {
-               if(current_queue(managed_processes.processes_table[i]->indicators_list, (void **)&e)==0)
+               if(mea_queue_current(managed_processes.processes_table[i]->indicators_list, (void **)&e)==0)
                {
                   int n=snprintf(buff,sizeof(buff),",\"%s\"",e->name);
                   if(n<0 || n==sizeof(buff))
                      return -1;
                   if(mea_strncat(json,sizeof(json),buff)<0)
                      return -1;
-                  next_queue(managed_processes.processes_table[i]->indicators_list);
+                  mea_queue_next(managed_processes.processes_table[i]->indicators_list);
                }
                else
                   break;
@@ -461,18 +463,18 @@ int _managed_processes_process_to_json(int id, char *s, int s_l, int flag)
 
       if( flag &&
           managed_processes.processes_table[id]->indicators_list &&
-          first_queue(managed_processes.processes_table[id]->indicators_list)==0 )
+          mea_queue_first(managed_processes.processes_table[id]->indicators_list)==0 )
       {
          while(1)
          {
-            if(current_queue(managed_processes.processes_table[id]->indicators_list, (void **)&e)==0)
+            if(mea_queue_current(managed_processes.processes_table[id]->indicators_list, (void **)&e)==0)
             {
                int n=snprintf(buff,sizeof(buff),",\"%s\":%ld",e->name,e->value);
                if(n<0 || n==sizeof(buff))
                   return -1;
                if(mea_strncat(s,s_l,buff)<0)
                   return -1;
-               next_queue(managed_processes.processes_table[id]->indicators_list);
+               mea_queue_next(managed_processes.processes_table[id]->indicators_list);
             }
             else
                break;
@@ -806,7 +808,7 @@ int16_t _process_register(char *name)
             managed_processes.processes_table[i]->description[0]=0;
             managed_processes.processes_table[i]->last_heartbeat=time(NULL);
             
-            managed_processes.processes_table[i]->indicators_list=(queue_t *)malloc(sizeof(queue_t));
+            managed_processes.processes_table[i]->indicators_list=(mea_queue_t *)malloc(sizeof(mea_queue_t));
             if(!managed_processes.processes_table[i]->indicators_list)
             {
                FREE(managed_processes.processes_table[i]);
@@ -816,10 +818,10 @@ int16_t _process_register(char *name)
             }
             else
             {
-               if(init_queue(managed_processes.processes_table[i]->indicators_list)!=ERROR)
+               if(mea_queue_init(managed_processes.processes_table[i]->indicators_list)!=ERROR)
                {
 #ifdef QUEUE_ENABLE_INDEX
-                  queue_create_index(managed_processes.processes_table[i]->indicators_list, _indicators_cmp);
+                  mea_queue_create_index(managed_processes.processes_table[i]->indicators_list, _indicators_cmp);
 #endif
                }
             }
@@ -905,7 +907,7 @@ int process_unregister(int id)
       id<managed_processes.max_processes &&
       managed_processes.processes_table[id])
    {
-      clean_queue(managed_processes.processes_table[id]->indicators_list, _indicators_free_queue_elem);
+      mea_queue_cleanup(managed_processes.processes_table[id]->indicators_list, _indicators_free_queue_elem);
       
       FREE(managed_processes.processes_table[id]->indicators_list);
       FREE(managed_processes.processes_table[id]);
@@ -1014,7 +1016,7 @@ int process_add_indicator(int id, char *name, long initial_value)
    pthread_cleanup_push( (void *)pthread_rwlock_unlock, (void *)&managed_processes.rwlock );
    pthread_rwlock_wrlock(&managed_processes.rwlock);
 
-   in_queue_elem(managed_processes.processes_table[id]->indicators_list, e);
+   mea_queue_in_elem(managed_processes.processes_table[id]->indicators_list, e);
    
    pthread_rwlock_unlock(&managed_processes.rwlock);
    pthread_cleanup_pop(0); 
@@ -1038,18 +1040,18 @@ int process_del_indicator(int id, char *name)
    {
       struct process_indicator_s *e;
 
-      if(first_queue(managed_processes.processes_table[id]->indicators_list)==0)
+      if(mea_queue_first(managed_processes.processes_table[id]->indicators_list)==0)
       {
-         while(current_queue(managed_processes.processes_table[id]->indicators_list, (void **)&e)==0)
+         while(mea_queue_current(managed_processes.processes_table[id]->indicators_list, (void **)&e)==0)
          {
             if(strcmp(name, e->name) == 0)
             {
-               remove_current_queue(managed_processes.processes_table[id]->indicators_list);
+               mea_queue_remove_current(managed_processes.processes_table[id]->indicators_list);
                ret=0;
                goto process_del_indicator_clean_exit;
             }
             else
-               next_queue(managed_processes.processes_table[id]->indicators_list);
+               mea_queue_next(managed_processes.processes_table[id]->indicators_list);
          }
       }
    }
@@ -1072,7 +1074,7 @@ int process_index_indicators_list(int id)
       id<managed_processes.max_processes &&
       managed_processes.processes_table[id])
    {
-      queue_recreate_index(managed_processes.processes_table[id]->indicators_list);
+      mea_queue_recreate_index(managed_processes.processes_table[id]->indicators_list);
    }
 
    pthread_rwlock_unlock(&managed_processes.rwlock);
@@ -1097,9 +1099,9 @@ int process_get_indicator(int id, char *name, long *value)
       struct process_indicator_s *e;
 
 #ifdef QUEUE_ENABLE_INDEX
-      if(queue_index_status(managed_processes.processes_table[id]->indicators_list)==1)
+      if(mea_queue_get_index_status(managed_processes.processes_table[id]->indicators_list)==1)
       {
-         if(queue_find_elem_by_index(managed_processes.processes_table[id]->indicators_list, (void *)name, (void *)&e)==0)
+         if(mea_queue_find_elem_by_index(managed_processes.processes_table[id]->indicators_list, (void *)name, (void *)&e)==0)
          {
             *value=e->value;
             ret=0;
@@ -1107,9 +1109,9 @@ int process_get_indicator(int id, char *name, long *value)
          goto process_get_indicator_clean_exit;
       }
 #endif
-      if(first_queue(managed_processes.processes_table[id]->indicators_list)==0)
+      if(mea_queue_first(managed_processes.processes_table[id]->indicators_list)==0)
       {
-         while(current_queue(managed_processes.processes_table[id]->indicators_list, (void **)&e)==0)
+         while(mea_queue_current(managed_processes.processes_table[id]->indicators_list, (void **)&e)==0)
          {
             if(strcmp(name, e->name) == 0)
             {
@@ -1118,7 +1120,7 @@ int process_get_indicator(int id, char *name, long *value)
                goto process_get_indicator_clean_exit;
             }
             else
-               next_queue(managed_processes.processes_table[id]->indicators_list);
+               mea_queue_next(managed_processes.processes_table[id]->indicators_list);
          }
       }
    }
@@ -1147,9 +1149,9 @@ int process_update_indicator(int id, char *name, long value)
       struct process_indicator_s *e;
 
 #ifdef QUEUE_ENABLE_INDEX
-      if(queue_index_status(managed_processes.processes_table[id]->indicators_list)==1)
+      if(mea_queue_get_index_status(managed_processes.processes_table[id]->indicators_list)==1)
       {
-         if(queue_find_elem_by_index(managed_processes.processes_table[id]->indicators_list, (void *)name, (void *)&e)==0)
+         if(mea_queue_find_elem_by_index(managed_processes.processes_table[id]->indicators_list, (void *)name, (void *)&e)==0)
          {
             e->value=value;
             ret=0;
@@ -1157,9 +1159,9 @@ int process_update_indicator(int id, char *name, long value)
          goto process_update_indicator_clean_exit;
       }
 #endif
-      if(first_queue(managed_processes.processes_table[id]->indicators_list)==0)
+      if(mea_queue_first(managed_processes.processes_table[id]->indicators_list)==0)
       {
-         while(current_queue(managed_processes.processes_table[id]->indicators_list, (void **)&e)==0)
+         while(mea_queue_current(managed_processes.processes_table[id]->indicators_list, (void **)&e)==0)
          {
             if(strcmp(name, e->name) == 0)
             {
@@ -1168,7 +1170,7 @@ int process_update_indicator(int id, char *name, long value)
                break;
             }
             else
-               next_queue(managed_processes.processes_table[id]->indicators_list);
+               mea_queue_next(managed_processes.processes_table[id]->indicators_list);
          }
       }
    }

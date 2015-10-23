@@ -11,7 +11,7 @@
 
 #include "mea_utils.h"
 
-#include "queue.h"
+#include "mea_queue.h"
 
 #define AUTO_INCREASE_MAX_PROCESSES 1
 #define NO_DATASEND 1
@@ -64,7 +64,7 @@ struct managed_processes_process_s
    void *heartbeat_recovery_data;
    int forced_watchdog_recovery_flag;
 
-   queue_t *indicators_list;
+   mea_queue_t *indicators_list;
 };
 
 

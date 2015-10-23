@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "memfile.h"
+#include "mea_memfile.h"
 #include "mea_cfgfile_utils.h"
 
 #include "access_point.h"

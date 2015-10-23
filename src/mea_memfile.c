@@ -4,20 +4,20 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "memfile.h"
+#include "mea_memfile.h"
 
 
-struct memfile_s *memfile_alloc()
+struct mea_memfile_s *mea_memfile_alloc()
 {
-   struct memfile_s *mf;
+   struct mea_memfile_s *mf;
 
-   mf=(struct memfile_s *)calloc(1, sizeof(struct memfile_s));
+   mf=(struct mea_memfile_s *)calloc(1, sizeof(struct mea_memfile_s));
 
    return mf;
 }
 
 
-struct memfile_s *memfile_init(struct memfile_s *mf, enum mf_type_e type, uint32_t bs, uint32_t nb)
+struct mea_memfile_s *mea_memfile_init(struct mea_memfile_s *mf, enum mea_mf_type_e type, uint32_t bs, uint32_t nb)
 {
    if(mf==NULL)
       return NULL;
@@ -36,7 +36,7 @@ struct memfile_s *memfile_init(struct memfile_s *mf, enum mf_type_e type, uint32
 }
 
 
-int memfile_release(struct memfile_s *mf)
+int mea_memfile_release(struct mea_memfile_s *mf)
 {
    mf->block_size=0;
    mf->block_num=0;
@@ -51,7 +51,7 @@ int memfile_release(struct memfile_s *mf)
 }
 
 
-int memfile_seek(struct memfile_s *mf, uint32_t p)
+int mea_memfile_seek(struct mea_memfile_s *mf, uint32_t p)
 {
    if(p < (mf->block_size*mf->block_num))
    {
@@ -65,7 +65,7 @@ int memfile_seek(struct memfile_s *mf, uint32_t p)
 }
 
 
-int memfile_extend(struct memfile_s *mf, uint32_t nb)
+int mea_memfile_extend(struct mea_memfile_s *mf, uint32_t nb)
 {
    if(mf->type != AUTOEXTEND)
       return -1;
@@ -91,7 +91,7 @@ int memfile_extend(struct memfile_s *mf, uint32_t nb)
 }
 
 
-int memfile_include(struct memfile_s *mf, char *file, int zero_ended)
+int mea_memfile_include(struct mea_memfile_s *mf, char *file, int zero_ended)
 {
    FILE *fd;
 
@@ -112,7 +112,7 @@ int memfile_include(struct memfile_s *mf, char *file, int zero_ended)
       {
          if(mf->p >= mf->block_size*mf->block_num)
          {
-            if(memfile_extend(mf, 5)<0)
+            if(mea_memfile_extend(mf, 5)<0)
             {
                fclose(fd);
                return 1;
@@ -125,7 +125,7 @@ int memfile_include(struct memfile_s *mf, char *file, int zero_ended)
       {
          if(mf->p >= mf->block_size*mf->block_num)
          {
-            if(memfile_extend(mf, 5)<0)
+            if(mea_memfile_extend(mf, 5)<0)
             {
                fclose(fd);
                return 1;
@@ -142,7 +142,7 @@ int memfile_include(struct memfile_s *mf, char *file, int zero_ended)
 }
 
 
-int memfile_printf(struct memfile_s *mf, char const* fmt, ...)
+int mea_memfile_printf(struct mea_memfile_s *mf, char const* fmt, ...)
 {
    va_list args;
    int ret;
@@ -164,7 +164,7 @@ int memfile_printf(struct memfile_s *mf, char const* fmt, ...)
          break;
       else
       {
-         if(memfile_extend(mf, 5)<0)
+         if(mea_memfile_extend(mf, 5)<0)
          {
             mf->p=(mf->block_size*mf->block_num)-1;
             return 1;

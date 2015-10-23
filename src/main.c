@@ -22,7 +22,8 @@
 #include "mea_verbose.h"
 #include "mea_utils.h"
 #include "mea_gpio.h"
-#include "string_utils.h"
+#include "mea_string_utils.h"
+
 #include "processManager.h"
 #include "minidisplay.h"
 #include "mea_cfgfile_utils.h"

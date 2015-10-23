@@ -4,8 +4,9 @@
 
 #include "mea_cfgfile_utils.h"
 #include "mea_verbose.h"
-#include "string_utils.h"
-#include "memfile.h"
+#include "mea_string_utils.h"
+#include "mea_memfile.h"
+
 
 int _getParamID(struct param_s params_list[], char *str)
 {
@@ -193,7 +194,7 @@ int mea_create_file_from_template(char *template_file, char *dest_file, ...)
    int args_count=0;
 
    FILE *fd_in=NULL, *fd_out=NULL;
-   struct memfile_s *mf=NULL;
+   struct mea_memfile_s *mf=NULL;
    char line[255];
 
    int ret_code=0;
@@ -236,7 +237,7 @@ int mea_create_file_from_template(char *template_file, char *dest_file, ...)
       goto create_cfg_from_template_clean_exit;
    }
 
-   mf=memfile_init(memfile_alloc(), AUTOEXTEND, 1024, 1);
+   mf=mea_memfile_init(mea_memfile_alloc(), AUTOEXTEND, 1024, 1);
 
    int lnum=0;
    while(!feof(fd_in))
@@ -276,7 +277,7 @@ int mea_create_file_from_template(char *template_file, char *dest_file, ...)
                      fprintf(stderr,"'%s'=='%s'?\n",var,args[i].var);
                      if(strcmp(var,args[i].var)==0)
                      {
-                        memfile_printf(mf, "%s", args[i].val);
+                        mea_memfile_printf(mf, "%s", args[i].val);
                         found_flag=0;
                         break;
                      }
@@ -296,7 +297,7 @@ int mea_create_file_from_template(char *template_file, char *dest_file, ...)
             }
             else
             {
-               memfile_printf(mf, "%c", line[i]);
+               mea_memfile_printf(mf, "%c", line[i]);
             }
          }
       }
@@ -327,7 +328,7 @@ create_cfg_from_template_clean_exit:
 
    if(mf)
    {
-      memfile_release(mf);
+      mea_memfile_release(mf);
       free(mf);
       mf=NULL;
    }

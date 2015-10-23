@@ -5,8 +5,8 @@
 //
 //
 
-#ifndef __string_utils_h
-#define __string_utils_h
+#ifndef __mea_string_utils_h
+#define __mea_string_utils_h
 
 #include <inttypes.h>
 
@@ -32,6 +32,6 @@ void    mea_strremovespaces(char* str);
 char   *mea_string_free_alloc_and_copy(char **org_str, char *str);
 char   *mea_string_alloc_and_copy(char *str);
 
-int mea_strisnumeric(char *str);
+int     mea_strisnumeric(char *str);
 
 #endif
