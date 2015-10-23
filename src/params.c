@@ -1,8 +1,9 @@
 #include <stdio.h>
 
+#include "mea_cfgfile.h"
 #include "params.h"
 
-struct param_s user_params_keys_list[]={
+struct cfgfile_keyvalue_s user_params_keys_list[]={
    {"admin_password",     ADMIN_PASSWORD_ID, "admin"},
    {"free_id",            FREE_ID_ID, ""},
    {"free_password",      FREE_PASSWORD_ID, ""},
@@ -13,7 +14,7 @@ struct param_s user_params_keys_list[]={
    {NULL,0,NULL}
 };
 
-struct param_s sys_params_keys_list[]={
+struct cfgfile_keyvalue_s sys_params_keys_list[]={
    {"connection_cfgfile", CONNECTIONCFGFILE_ID, "/usr/local/librewifi/etc/user.cfg" },
    {"lcd_cfgfile", LCDCFGFILE_ID, "/usr/local/librewfifi/etc/lcd.cfg" },
    {"hostapd_iface", HOSTAPD_IFACE_ID, "wlan0"},

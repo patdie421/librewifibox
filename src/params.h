@@ -1,7 +1,7 @@
 #ifndef __params_h
 #define __params_h
 
-#include "mea_cfgfile_utils.h"
+#include "mea_cfgfile.h"
 
 enum user_params_id_e {
    ADMIN_PASSWORD_ID=0,
@@ -36,8 +36,8 @@ enum sys_params_id_e {
 };
 
 
-extern struct param_s user_params_keys_list[];
-extern struct param_s sys_params_keys_list[];
+extern struct cfgfile_keyvalue_s user_params_keys_list[];
+extern struct cfgfile_keyvalue_s sys_params_keys_list[];
 extern char *user_params[];
 extern char *sys_params[];
 

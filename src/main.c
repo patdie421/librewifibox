@@ -24,7 +24,7 @@
 #include "mea_timer.h"
 #include "mea_gpio.h"
 #include "mea_string_utils.h"
-#include "mea_cfgfile_utils.h"
+#include "mea_cfgfile.h"
 
 #include "processManager.h"
 #include "minidisplay.h"

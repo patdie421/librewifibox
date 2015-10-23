@@ -2,13 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mea_cfgfile_utils.h"
+#include "mea_cfgfile.h"
+
 #include "mea_verbose.h"
 #include "mea_string_utils.h"
 #include "mea_memfile.h"
 
 
-int _getParamID(struct param_s params_list[], char *str)
+static int _getParamID(struct cfgfile_keyvalue_s params_list[], char *str)
 {
    if(!str)
       return -1;
@@ -23,7 +24,7 @@ int _getParamID(struct param_s params_list[], char *str)
 }
 
 
-char *_getParamKey(struct param_s params_list[], int id)
+static char *_getParamKey(struct cfgfile_keyvalue_s params_list[], int id)
 {
    uint16_t i;
    for(i=0;params_list[i].key;i++)
@@ -50,7 +51,7 @@ int mea_clean_cfgfile(char *params[], uint16_t nb_params)
 }
 
 
-int mea_write_cfgfile(char *file, struct param_s *keys_names_list, char *params[], uint16_t nb_params)
+int mea_write_cfgfile(char *file, struct cfgfile_keyvalue_s *keys_names_list, char *params[], uint16_t nb_params)
 {
    int ret_code=0;
    FILE *fd;
@@ -82,7 +83,7 @@ mea_write_cfgfile_clean_exit:
 }
 
 
-int mea_load_cfgfile(char *file, struct param_s *keys_names_list, char *params[], uint16_t nb_params)
+int mea_load_cfgfile(char *file, struct cfgfile_keyvalue_s *keys_names_list, char *params[], uint16_t nb_params)
 {
    FILE *fd;
  

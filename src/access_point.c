@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "mea_memfile.h"
-#include "mea_cfgfile_utils.h"
+#include "mea_cfgfile.h"
 
 #include "access_point.h"
 
