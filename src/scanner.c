@@ -6,12 +6,12 @@
 #include <time.h>
 
 #include "mea_verbose.h"
-#include "mea_utils.h"
+#include "mea_timer.h"
 #include "minidisplay.h"
 #include "wifi.h"
 #include "scanner.h"
 
-#include "debug.h"
+//#include "debug.h"
 
 pthread_t *_scannerServer_thread=NULL;
 
@@ -64,7 +64,7 @@ static void _wifi_scanner(char *iface, char *essid_searched, uint16_t max, struc
             mini_display_xy_printf(display,DISPLAY_PAGE,0,nb,1,"");
       }
    
-      FREE(ap_data);
+      free(ap_data);
    }
 
   // Close the socket
@@ -96,7 +96,7 @@ void *_scanner_thread(void *args)
       strncpy(essid,_args->essid,sizeof(essid)-1); 
       display=_args->display;
       myID=_args->myID;
-      FREE(args);
+      free(args);
    }
    else
       return NULL;
@@ -148,14 +148,14 @@ pthread_t *scanner_thread_start(int myID, char *iface, char *essid, struct mini_
    thread=(pthread_t *)malloc(sizeof(pthread_t));
    if(!thread)
    {
-      FREE(args);
+      free(args);
       args=NULL;
       return NULL;
    }
 
    if(pthread_create(thread, NULL, (void *)_scanner_thread, (void *)args))
    {
-      FREE(args);
+      free(args);
       args=NULL;
       return NULL;
    }
@@ -176,7 +176,7 @@ int stop_scannerServer(int my_id, void *data, char *errmsg, int l_errmsg)
 
       usleep(500*1000);
 
-      FREE(_scannerServer_thread);
+      free(_scannerServer_thread);
       _scannerServer_thread=NULL;
    }
 

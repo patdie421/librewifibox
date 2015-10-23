@@ -15,7 +15,7 @@
 
 #include "mea_verbose.h"
 #include "mea_string_utils.h"
-#include "mea_utils.h"
+#include "mea_timer.h"
 
 #include "mea_queue.h"
 
@@ -23,14 +23,13 @@
 #include "sockets_utils.h"
 #endif
 
-#include "debug.h"
 
 struct managed_processes_s managed_processes;
 
 void _indicators_free_queue_elem(void *e)
 {
    if(e)
-      FREE(e);
+      free(e);
 }
 
 #ifdef QUEUE_ENABLE_INDEX
@@ -57,14 +56,14 @@ void managed_processes_set_notification_hostname(char *hostname)
      char *t=_notif_hostname;
      _notif_hostname=h;
      if(t)
-       FREE(t);
+       free(t);
    }
    else
    {
       char *t=_notif_hostname;
       _notif_hostname=NULL;
       if(t)
-         FREE(t);
+         free(t);
    }
 }
 
@@ -213,7 +212,7 @@ int process_job_set_scheduling_data(int id, char *str, int16_t condition)
    
    if(mps->schedule_command_mem)
    {
-      FREE(mps->schedule_command_mem);
+      free(mps->schedule_command_mem);
       mps->schedule_command_mem=NULL;
    }
 
@@ -231,7 +230,7 @@ int process_job_set_scheduling_data(int id, char *str, int16_t condition)
    char *tmp_ptr=realloc(mps->schedule_command_mem, strlen(s)+1);
    if(tmp_ptr==NULL)
    {
-      FREE(mps->schedule_command_mem);
+      free(mps->schedule_command_mem);
       mps->schedule_command_mem=NULL;
       ret=-1;
       goto process_job_set_scheduling_data_clean_exit;
@@ -257,7 +256,7 @@ int process_job_set_scheduling_data(int id, char *str, int16_t condition)
        _match_scheduling_number(mps->schedule_command_strings_ptr[3], 0)==-2 || // MM
        _match_scheduling_number(mps->schedule_command_strings_ptr[4], 0)==-2 ) // DayOfWeek
    {
-      FREE(mps->schedule_command_mem);
+      free(mps->schedule_command_mem);
       mps->schedule_command_mem=NULL;
       ret=-1;
       goto process_job_set_scheduling_data_clean_exit;
@@ -811,7 +810,7 @@ int16_t _process_register(char *name)
             managed_processes.processes_table[i]->indicators_list=(mea_queue_t *)malloc(sizeof(mea_queue_t));
             if(!managed_processes.processes_table[i]->indicators_list)
             {
-               FREE(managed_processes.processes_table[i]);
+               free(managed_processes.processes_table[i]);
                managed_processes.processes_table[i]=NULL;
                
                return -1;
@@ -909,8 +908,8 @@ int process_unregister(int id)
    {
       mea_queue_cleanup(managed_processes.processes_table[id]->indicators_list, _indicators_free_queue_elem);
       
-      FREE(managed_processes.processes_table[id]->indicators_list);
-      FREE(managed_processes.processes_table[id]);
+      free(managed_processes.processes_table[id]->indicators_list);
+      free(managed_processes.processes_table[id]);
       managed_processes.processes_table[id]=NULL;
       ret=0;
    }
@@ -1246,7 +1245,7 @@ int _managed_processes_send_stats(char *hostname, int port)
             char *message=(char *)malloc(l_data+12);
             sprintf(message,"$$$%c%cMON:%s###", (char)(l_data%128), (char)(l_data/128), json);
             ret = mea_socket_send(&sock, message, l_data+12);
-            FREE(message);
+            free(message);
       
             close(sock);
          }
@@ -1484,7 +1483,7 @@ void *_task_thread(void *data)
    
    if(data)
    {
-      FREE(data);
+      free(data);
       data=NULL;
    }
    

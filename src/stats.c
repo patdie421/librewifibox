@@ -8,11 +8,10 @@
 #include "stats.h"
 
 #include "mea_verbose.h"
-#include "mea_utils.h"
+#include "mea_timer.h"
 #include "minidisplay.h"
 #include "mea_ip_utils.h"
 
-#include "debug.h"
 
 pthread_t *_statsServer_thread=NULL;
 
@@ -108,7 +107,7 @@ void *_stats_thread(void *args)
       strncpy(essid,_args->essid,sizeof(essid)-1);
       display=_args->display;
       myID=_args->myID;
-      FREE(args);
+      free(args);
    }
    else
       return NULL;
@@ -205,14 +204,14 @@ pthread_t *stats_thread_start(int myID, char *iface, char *essid, struct mini_di
    thread=(pthread_t *)malloc(sizeof(pthread_t));
    if(!thread)
    {
-      FREE(args);
+      free(args);
       args=NULL;
       return NULL;
    }
 
    if(pthread_create(thread, NULL, (void *)_stats_thread, (void *)args))
    {
-      FREE(args);
+      free(args);
       args=NULL;
       return NULL;
    }
@@ -233,7 +232,7 @@ int stop_statsServer(int my_id, void *data, char *errmsg, int l_errmsg)
 
       usleep(100*1000);
 
-      FREE(_statsServer_thread);
+      free(_statsServer_thread);
       _statsServer_thread=NULL;
    }
 

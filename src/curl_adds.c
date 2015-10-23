@@ -6,7 +6,6 @@
 #include "curl_adds.h"
 
 #include "mea_verbose.h"
-#include "debug.h"
 
 
 int curl_result_init(struct curl_result_s *cr)
@@ -23,7 +22,7 @@ int curl_result_release(struct curl_result_s *cr)
    cr->l=0;
    if(cr->p)
    {
-      FREE(cr->p);
+      free(cr->p);
       cr->p=NULL;
    }
 }

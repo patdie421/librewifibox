@@ -11,13 +11,12 @@
 
 #include "mea_ip_utils.h"
 #include "mea_verbose.h"
-#include "mea_utils.h"
+//#include "mea_utils.h"
+#include "mea_timer.h"
 #include "mea_string_utils.h"
 
 #include "minidisplay.h"
 #include "auth.h"
-
-#include "debug.h"
 
 pthread_t *_linkServer_thread=NULL;
 
@@ -200,7 +199,7 @@ void *_link_thread(void *args)
       strncpy(free_id,_args->free_id,sizeof(free_id)-1);
       strncpy(free_passwd,_args->free_passwd,sizeof(free_passwd)-1);
       display=_args->display;
-      FREE(args);
+      free(args);
    }
 
    int ret=0;
@@ -487,14 +486,14 @@ pthread_t *link_thread_start(int myID, char *iface, char *essid, char *free_id, 
    thread=(pthread_t *)malloc(sizeof(pthread_t));
    if(!thread)
    {
-      FREE(args);
+      free(args);
       args=NULL;
       return NULL;
    }
 
    if(pthread_create(thread, NULL, (void *)_link_thread, (void *)args))
    {
-      FREE(args);
+      free(args);
       args=NULL;
       return NULL;
    }
@@ -515,7 +514,7 @@ int stop_linkServer(int my_id, void *data, char *errmsg, int l_errmsg)
 
       usleep(100*1000);
 
-      FREE(_linkServer_thread);
+      free(_linkServer_thread);
       _linkServer_thread=NULL;
    }
 
