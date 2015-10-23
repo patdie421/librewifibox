@@ -1,7 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
 #include <time.h>
 #include <stdarg.h>
-#include <pthread.h>
+#include <inttypes.h>
+#include <sys/file.h>
 
 #include "mea_verbose.h"
 
@@ -15,14 +20,104 @@ const char *_fatal_error_str="FATAL ERROR";
 const char *_warning_str="WARNING";
 const char *_malloc_error_str="malloc error";
 
-pthread_rwlock_t mea_log_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
-pthread_rwlock_t *mea_log_get_rwlock()
+int mea_rotate_open_log_file(FILE *fd, char *name, uint16_t max_index)
 {
-   return &mea_log_rwlock;
+   int ret_code=0;
+   int ret=0;
+   char *name_old=NULL, *name_new=NULL;
+   FILE *fd_dest;
+
+   name_old = (char *)malloc(strlen(name)+7); // 7 => . + 5 digits (16 bit) + 1
+   if(name_old == NULL)
+   {
+      ret_code=-1;
+      goto mea_rotate_open_log_file_clean_exit;
+   }
+
+   // removing oldest file if needed
+   sprintf(name_old,"%s.%d", name, max_index);
+   if(access( name_old, W_OK ) != -1)
+   {
+      ret=unlink(name_old);
+      if(ret<0)
+      {
+         perror("unlink: ");
+         ret_code=-1;
+         goto mea_rotate_open_log_file_clean_exit;
+      }
+   }
+
+
+   name_new = (char *)malloc(strlen(name)+7); // 7 => . + 5 digits (16 bit) + 1
+   if(name_old == NULL)
+   {
+      ret_code=-1;
+      goto mea_rotate_open_log_file_clean_exit;
+   }
+
+   int16_t i=max_index-1;
+   for(;i>-1;i--)
+   {
+      sprintf(name_new,"%s.%d", name, i+1);
+      sprintf(name_old,"%s.%d", name, i);
+
+      if(access( name_old, W_OK ) != -1)
+      {
+         ret=rename(name_old, name_new);
+         if(ret<0)
+         {
+            perror("rename: ");
+            ret_code=-1;
+            goto mea_rotate_open_log_file_clean_exit;
+         }
+      }
+   }
+
+   if(fd)
+   {
+      sprintf(name_new,"%s.%d", name, 0);
+      int fd_dest=open(name_new, O_CREAT | O_WRONLY, S_IWUSR | S_IRUSR);
+      if(fd_dest<0)
+      {
+         perror("open: ");
+         ret_code=-1;
+         goto mea_rotate_open_log_file_clean_exit;
+      }
+    
+      flock(fileno(fd),LOCK_EX);
+
+      fseek(fd, 0, SEEK_SET);
+      // size_t fread ( void * ptr, size_t size, size_t count, FILE * stream );
+      char buf[4096];
+      while(!feof(fd))
+      {
+         size_t nb=fread(buf, 1, sizeof(buf), fd);
+         write(fd_dest, buf, nb);
+      }
+      ftruncate(fileno(fd), 0);
+ 
+      flock(fileno(fd),LOCK_UN);
+
+      close(fd_dest);
+   }
+ 
+mea_rotate_open_log_file_clean_exit:
+   if(name_old)
+   {
+      free(name_old);
+      name_old=NULL;
+   }
+   if(name_new)
+   {
+      free(name_new);
+      name_new=NULL;
+   }
+
+   return ret_code;
 }
 
-
+ 
 void mea_log_printf(char const* fmt, ...)
 /**
  * \brief     imprime un message de type log
@@ -41,29 +136,26 @@ void mea_log_printf(char const* fmt, ...)
    t=time(NULL);
 
    if (localtime_r(&t, &t_tm) == NULL)
-   {
-//      perror("");
       return;
-   }
 
    if (strftime(date_str, sizeof(date_str), date_format, &t_tm) == 0)
-   {
-//      fprintf(MEA_STDERR, "strftime returned 0");
       return;
-   }
 
    va_start(args, fmt);
 
-   pthread_cleanup_push( (void *)pthread_rwlock_unlock, (void *)&mea_log_rwlock );
-   pthread_rwlock_wrlock(&mea_log_rwlock);
+   flock(fileno(MEA_STDERR),LOCK_EX);
 
    fprintf(MEA_STDERR, "%s ", date_str);
    vfprintf(MEA_STDERR, fmt, args);
 
-   pthread_rwlock_unlock(&mea_log_rwlock);
-   pthread_cleanup_pop(0);
-
+   flock(fileno(MEA_STDERR),LOCK_UN);
+  
    va_end(args);
 }
 
-
+#ifdef MODULE_R7
+int main(int argc, char *argv[])
+{
+   mea_rotate_open_log_file((FILE *)NULL, "test.log", 5);
+}
+#endif

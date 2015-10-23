@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "memfile.h"
-#include "cfgfile_utils.h"
+#include "mea_cfgfile_utils.h"
 
 #include "access_point.h"
 
@@ -29,11 +29,35 @@ int create_hostapd_cfg(char *template_file, char *dest_file, char *iface, char *
 }
 
 
-int create_interfaces_cfg(char *template_file, char *dest_file, char *my_ip, char *my_netmask)
+int create_interfaces_cfg(char *template_file, char *dest_file, char *ip_and_netmask)
 {
-   return mea_create_file_from_template(template_file, dest_file, "boxip", my_ip, "netmask", my_netmask, NULL);
+   char ip[32], netmask[32];
+   int n;
+ 
+   sscanf(ip_and_netmask,"%32[^,],%32[^/n]%n", ip, netmask, &n);
+   mea_strtrim2(ip);
+   mea_strtrim2(netmask);
+   
+   return mea_create_file_from_template(template_file, dest_file, "boxip", ip, "netmask", netmask, NULL);
 }
 
+
+int create_udhcpd_cfg(char *template_file, char *dest_file, char *iface, char *ip_and_netmask, char *dhcp_range)
+{
+   char ip[32], netmask[32];
+   char dhcp_start[32], dhcp_end[32];
+   int n;
+
+   sscanf(ip_and_netmask, "%32[^,],%32[^/n]%n", ip, netmask, &n);
+   sscanf(dhcp_range, "%32[^,],%32[^/n]%n", dhcp_start, dhcp_end, &n);
+
+   mea_strtrim2(ip);
+   mea_strtrim2(netmask);
+   mea_strtrim2(dhcp_start);
+   mea_strtrim2(dhcp_end);
+
+   return mea_create_file_from_template(template_file, dest_file, "iface", iface, "boxip", ip, "netmask", netmask, "start", dhcp_start, "end", dhcp_end, NULL);
+}
 
 /*
 int create_hostapd_cfg_old(char *template_file, char *dest_file, char *iface, char *essid, char *passwd)

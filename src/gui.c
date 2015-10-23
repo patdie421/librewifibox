@@ -18,7 +18,7 @@
 #include "memfile.h"
 #include "params.h"
 #include "iwlib.h"
-#include "ip_utils.h"
+#include "mea_ip_utils.h"
 
 static int reboot_flag=-1;
 
@@ -288,26 +288,32 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
                error=error | 0b00100000;
 
             uint32_t _addr, _netmask, _start, _end;
-            if(str_is_valid_addr(ip, &_addr)==-1)
+            if(mea_strisvalidaddr(ip, &_addr)==-1)
                error=error | 0b01000000;
 
-            if(str_is_valid_netmask(netmask, &_netmask)==-1)
+            if(mea_strisvalidnetmask(netmask, &_netmask)==-1)
                error=error | 0b10000000;
 
-            if(str_is_valid_addr(dhcp_start, &_start)==-1)
+            if(mea_strisvalidaddr(dhcp_start, &_start)==-1)
                error=error | 0b0000000100000000;
-            else if(addrs_in_same_network(_addr, _start, _netmask)==-1)
+            else if(mea_areaddrsinsamenetwork(_addr, _start, _netmask)==-1)
                error=error | 0b0000010000000000;
 
-            if(str_is_valid_addr(dhcp_end, &_end)==-1)
+            if(mea_strisvalidaddr(dhcp_end, &_end)==-1)
                error=error | 0b0000001000000000;
-            else if(addrs_in_same_network(_addr, _end, _netmask)==-1)
+            else if(mea_areaddrsinsamenetwork(_addr, _end, _netmask)==-1)
                error=error | 0b0000100000000000;
 
             if( _addr != 0 && _start != 0 && _end !=0 )
                if( _addr >= _start && _addr <= _end)
                   error=error | 0b0001000000000000;
 
+            uint32_t __netmask = ~_netmask;
+            fprintf(stderr,"%x %x %x\n", error & 0b01000000 & 0b10000000, (_addr & __netmask),(0xFFFFFFFF & __netmask));
+            if( ( error & 0b01000000 & 0b10000000 ) == 0 )
+               if( (_addr & __netmask) == (0xFFFFFFFF & __netmask) )
+                  error=error | 0b0010000000000000;
+          
             if(error==0)
             {
                char *new_params[NB_USERPARAMS];
@@ -450,7 +456,7 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
          if(error & 0b00100000)
             memfile_printf(mf, 
               "<DIV>ERROR: incorrect freewifi user length (32 caracters max)</DIV>", error);
-         if(error & 0b01000000)
+         if((error & 0b01000000) || (error & 0b0010000000000000))
             memfile_printf(mf, 
               "<DIV>ERROR: invalid box ip address</DIV>", error);
          if(error & 0b10000000)

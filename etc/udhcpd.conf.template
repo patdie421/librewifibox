@@ -5,7 +5,7 @@ end      [[end]]
 #The interface that udhcpd will use
 interface   [[iface]]
 
-option  subnet  [[subnet]]
+option  subnet  [[netmask]]
 opt     router  [[boxip]]
 opt     wins    [[boxip]]
 option  dns     8.8.8.8

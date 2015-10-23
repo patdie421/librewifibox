@@ -10,7 +10,7 @@
 #include "mea_verbose.h"
 #include "mea_utils.h"
 #include "minidisplay.h"
-#include "ip_utils.h"
+#include "mea_ip_utils.h"
 
 #include "debug.h"
 
@@ -135,7 +135,7 @@ void *_stats_thread(void *args)
    int ip_flag, ip_reset_flag=1;
    while(1)
    {
-      ip_flag=waitipaddr(iface, 1, NULL);
+      ip_flag=mea_waitipaddr(iface, 1, NULL);
       if(ip_flag==0)
       {
          if(mea_test_timer(&bps_timer)==0)

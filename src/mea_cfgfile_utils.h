@@ -1,5 +1,5 @@
-#ifndef __cfgfile_utils_h
-#define __cfgfile_utils_h
+#ifndef __mea_cfgfile_utils_h
+#define __mea_cfgfile_utils_h
 
 #include <inttypes.h>
 

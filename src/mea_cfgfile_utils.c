@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cfgfile_utils.h"
-#include "string_utils.h"
+#include "mea_cfgfile_utils.h"
 #include "mea_verbose.h"
+#include "string_utils.h"
 #include "memfile.h"
 
 int _getParamID(struct param_s params_list[], char *str)

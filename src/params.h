@@ -1,7 +1,7 @@
 #ifndef __params_h
 #define __params_h
 
-#include "cfgfile_utils.h"
+#include "mea_cfgfile_utils.h"
 
 enum user_params_id_e {
    ADMIN_PASSWORD_ID=0,
@@ -30,6 +30,8 @@ enum sys_params_id_e {
    GPIO_BUTTON1_ID,
    GPIO_BUTTON2_ID,
    LOG_FILE_ID,
+   INTERFACES_TEMPLATE_ID,
+   UDHCPD_CFG_TEMPLATE_ID,
    NB_SYSPARAMS
 };
 

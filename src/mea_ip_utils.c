@@ -11,9 +11,9 @@
 #include <ifaddrs.h>
 #include <poll.h>
 
-#include "mea_verbose.h"
+#include "mea_ip_utils.h"
 
-#include "ip_utils.h"
+#include "mea_verbose.h"
 
 
 #define PACKETSIZE  64
@@ -25,7 +25,7 @@ struct packet
 };
 
 
-int getifaceaddr(char *iface, char *addr)
+int mea_getifaceaddr(char *iface, char *addr)
 {
    struct ifaddrs *ifaddr, *ifa;
    int family, s;
@@ -93,7 +93,7 @@ static unsigned short _ping_checksum(void *b, int len)
 }
 
 
-int ping(char *address)
+int mea_ping(char *address)
 {
    const int val=255;
    int i, sd;
@@ -204,12 +204,12 @@ int ping(char *address)
 }
 
 
-int waitipaddr(char *iface, int timeout, char *addr)
+int mea_waitipaddr(char *iface, int timeout, char *addr)
 {
    int i=0;
    for(;i<timeout;i++)
    {
-      if(getifaceaddr(iface, addr)==0)
+      if(mea_getifaceaddr(iface, addr)==0)
       {
          return 0;
       }
@@ -219,7 +219,7 @@ int waitipaddr(char *iface, int timeout, char *addr)
 }
 
 
-int is_netmask(uint32_t netmask)
+int mea_isnetmask(uint32_t netmask)
 {
 // voir http://stackoverflow.com/questions/17401067/c-code-for-valid-netmask
 
@@ -229,7 +229,7 @@ int is_netmask(uint32_t netmask)
 }
 
 
-int addrs_in_same_network(uint32_t addr1, uint32_t addr2, uint32_t netmask)
+int mea_areaddrsinsamenetwork(uint32_t addr1, uint32_t addr2, uint32_t netmask)
 {
    uint32_t n1,n2;
 
@@ -243,7 +243,7 @@ int addrs_in_same_network(uint32_t addr1, uint32_t addr2, uint32_t netmask)
 }
 
 
-int str_is_valid_addr(char *s, uint32_t *addr)
+int mea_strisvalidaddr(char *s, uint32_t *addr)
 {
    int ret=0;
    int ip[4],p;
@@ -270,7 +270,7 @@ int str_is_valid_addr(char *s, uint32_t *addr)
 }
 
 
-int str_is_valid_netmask(char *s, uint32_t *n)
+int mea_strisvalidnetmask(char *s, uint32_t *n)
 {
    uint32_t netmask=0;
    int valid=-1;
@@ -278,9 +278,9 @@ int str_is_valid_netmask(char *s, uint32_t *n)
    if(n)
       *n=0;
 
-   if(str_is_valid_addr(s, &netmask)==0)
+   if(mea_strisvalidaddr(s, &netmask)==0)
    {
-      valid=is_netmask(netmask);
+      valid=mea_isnetmask(netmask);
       if(n && valid!=-1)
          *n=netmask;
    }

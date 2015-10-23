@@ -25,7 +25,7 @@
 #include "string_utils.h"
 #include "processManager.h"
 #include "minidisplay.h"
-#include "cfgfile_utils.h"
+#include "mea_cfgfile_utils.h"
 #include "params.h"
 #include "scanner.h"
 #include "link.h"
@@ -47,7 +47,7 @@ int button1_fd=-1;
 int button2_fd=-1;
 
 char *syscfg_file;
-char *log_file;
+char *log_file=NULL;
 
 struct lcd_s *lcd=NULL;
 struct mini_display_s *display=NULL;
@@ -63,28 +63,12 @@ int usage(char *cmnd)
 
 int logfile_rotation_job(int my_id, void *data, char *errmsg, int l_errmsg)
 {
-   fprintf(stderr, "********************************************************************************\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "*                                LE JOB EST LANCE                              *\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "********************************************************************************\n");
-
-   
-
-   fprintf(stderr, "********************************************************************************\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "*                              LE JOB C'EST EXECUTE                            *\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "*                                                                              *\n");
-   fprintf(stderr, "********************************************************************************\n");
-   
+   if(log_file)
+   {
+      mea_log_printf("%s (%s) : job rotation start\n", INFO_STR, __func__);
+      mea_rotate_open_log_file(MEA_STDERR, log_file, 6);
+      mea_log_printf("%s (%s) : job rotation done\n", INFO_STR, __func__);
+   }
    return;
 }
 
@@ -168,6 +152,9 @@ void sighup_handler(int signo)
       char free_passwd_prev[32];
       char hostapd_essid_prev[IW_ESSID_MAX_SIZE+1];
       char hostapd_passwd_prev[64];
+      char ip_netmask_prev[64];
+      char dhcp_start_end_prev[64];
+
 
       VERBOSE(2) mea_log_printf("%s (%s) : reload new parameters\n", INFO_STR, __func__);
 
@@ -175,6 +162,9 @@ void sighup_handler(int signo)
       strncpy(free_passwd_prev, user_params[FREE_PASSWORD_ID], sizeof(free_passwd_prev));
       strncpy(hostapd_essid_prev, user_params[MY_ESSID_ID], sizeof(hostapd_essid_prev));
       strncpy(hostapd_passwd_prev, user_params[MY_PASSWORD_ID], sizeof(hostapd_passwd_prev));
+      strncpy(ip_netmask_prev, user_params[MY_IP_AND_NETMASK_ID], sizeof(ip_netmask_prev));
+      strncpy(dhcp_start_end_prev, user_params[MY_DHCP_RANGE_ID], sizeof(dhcp_start_end_prev));
+
 
       int ret=mea_load_cfgfile(sys_params[CONNECTIONCFGFILE_ID], user_params_keys_list, user_params, NB_USERPARAMS);
       if(ret<0)
@@ -185,24 +175,32 @@ void sighup_handler(int signo)
       }
 
       
-      if( strcmp(hostapd_essid_prev, user_params[MY_ESSID_ID])!=0 || strcmp(hostapd_passwd_prev, user_params[MY_PASSWORD_ID])!=0)
+      if( strcmp(hostapd_essid_prev,  user_params[MY_ESSID_ID])!=0 ||
+          strcmp(hostapd_passwd_prev, user_params[MY_PASSWORD_ID])!=0 ||
+          strcmp(ip_netmask_prev,     user_params[MY_IP_AND_NETMASK_ID])!=0 ||
+          strcmp(dhcp_start_end_prev, user_params[MY_DHCP_RANGE_ID])!=0)
       {
           set_reboot_flag(1);
 
+          fprintf(stderr,"ICI\n");
           create_hostapd_cfg(sys_params[HOSTAPD_CFG_TEMPLATE_ID], "/etc/hostapd/hostapd.conf", sys_params[HOSTAPD_IFACE_ID], user_params[MY_ESSID_ID], user_params[MY_PASSWORD_ID]);
+          create_interfaces_cfg(sys_params[INTERFACES_TEMPLATE_ID], "/etc/network/interfaces", user_params[MY_IP_AND_NETMASK_ID]);
+          create_udhcpd_cfg(sys_params[UDHCPD_CFG_TEMPLATE_ID], "/etc/udhcpd.conf", sys_params[HOSTAPD_IFACE_ID], user_params[MY_IP_AND_NETMASK_ID], user_params[MY_DHCP_RANGE_ID]);
+          fprintf(stderr,"LA\n");
 
           VERBOSE(2) mea_log_printf("%s (%s) : new parameters need a reboot\n", INFO_STR, __func__);
 
           sleep(5);
 
-          reboot();
+//          reboot();
 
           stop_all(0);
       }
       else
           set_reboot_flag(0);
 
-      if( strcmp(free_id_prev, user_params[FREE_ID_ID])!=0 || strcmp(free_passwd_prev, user_params[FREE_PASSWORD_ID])!=0)
+      if( strcmp(free_id_prev, user_params[FREE_ID_ID])!=0 ||
+          strcmp(free_passwd_prev, user_params[FREE_PASSWORD_ID])!=0)
       {
          process_stop(linkServer_monitoring_id, NULL, 0);
 
@@ -294,7 +292,7 @@ int main(int argc, char *argv[])
    free_password=user_params[FREE_PASSWORD_ID];
 
    // adresse ip de l'interface LAN
-   if(getifaceaddr(sys_params[HOSTAPD_IFACE_ID], lan_addr)<0)
+   if(mea_getifaceaddr(sys_params[HOSTAPD_IFACE_ID], lan_addr)<0)
    {
       VERBOSE(1) mea_log_printf("%s (%s) : no local addr on \"%s\" interface\n", ERROR_STR, __func__, sys_params[HOSTAPD_IFACE_ID]);
       exit_code=1;
@@ -545,15 +543,16 @@ int main(int argc, char *argv[])
       goto main_clean_exit;
    }
 
-/*
-   int job_id=process_register("TESTJOB");
-   process_set_start_stop(job_id, scheduled_job, NULL, NULL, 1);
+
+   int job_id=process_register("LOGROTATION");
+   process_set_start_stop(job_id, logfile_rotation_job, NULL, NULL, 1);
    process_set_type(job_id, JOB);
-//   process_job_set_scheduling_data(job_id, "*|*|*|*|*", 0);
-   process_job_set_scheduling_data(job_id, "0,5,10,15,20,25,30,35,40,45,50,55|*|*|*|*", 0);
+//   process_job_set_scheduling_data(job_id, "0,5,10,15,20,25,30,35,40,45,50,55|*|*|*|*", 0);
+   process_job_set_scheduling_data(job_id, "0|13,21,5|*|*|*", 0);
    process_set_group(job_id, 1);
-*/
-   setsid();
+
+//   mea_rotate_open_log_file(MEA_STDERR, log_file, 5);
+   process_run_task(job_id, NULL, 0);
 
    for(;;) // boucle principale (gestion des i/o ihm)
    {

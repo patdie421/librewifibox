@@ -37,12 +37,12 @@ int freewifi_auth_validation(char *url)
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, (curl_write_callback)curl_result_get);
       curl_easy_setopt(curl, CURLOPT_WRITEDATA, &cr);
 
-      DEBUG_SECTION mea_log_printf("auth validation with %s ...\n", url);
+      DEBUG_SECTION mea_log_printf("%s (%s) : auth validation with %s ...\n", url, DEBUG_STR, __func__);
  
       CURLcode res = curl_easy_perform(curl);
       if(res != CURLE_OK)
       {
-         DEBUG_SECTION mea_log_printf("curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+         DEBUG_SECTION mea_log_printf("%s (%s) : curl_easy_perform() failed: %s\n", curl_easy_strerror(res), DEBUG_STR, __func__);
          ret=-1;
       }
       else

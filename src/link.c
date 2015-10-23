@@ -9,7 +9,7 @@
 
 #include "link.h"
 
-#include "ip_utils.h"
+#include "mea_ip_utils.h"
 #include "mea_verbose.h"
 #include "string_utils.h"
 #include "mea_utils.h"
@@ -236,7 +236,7 @@ void *_link_thread(void *args)
          process_heartbeat(myID);
       }
 
-      ip_flag=waitipaddr(iface, 5, addr);
+      ip_flag=mea_waitipaddr(iface, 5, addr);
       if(ip_flag==0)
       {
          system("/sbin/iptables -t nat -F");
@@ -365,7 +365,7 @@ void *_link_thread(void *args)
 
                   if(display)
                      mini_display_xy_printf(display, DISPLAY_PAGE, 0, PING_LINE, 1, "PING:            %02d",i);
-                  if (ping(ping_hosts_to_check[ping_hosts_to_check_rr])<0)
+                  if (mea_ping(ping_hosts_to_check[ping_hosts_to_check_rr])<0)
                   {
                      DEBUG_SECTION mea_log_printf("%s (%s) : Ping (%s) is not OK.\n", DEBUG_STR, __func__, ping_hosts_to_check[ping_hosts_to_check_rr]);
                      if(display)
@@ -392,7 +392,7 @@ void *_link_thread(void *args)
 
             usleep(100*1000); // 100ms
          }
-         while(waitipaddr(iface,5,addr)==0 && auth_retry<3);
+         while(mea_waitipaddr(iface,5,addr)==0 && auth_retry<3);
       }
 
       if(display)
