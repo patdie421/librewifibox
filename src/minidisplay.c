@@ -5,11 +5,12 @@
 #include <pthread.h>
 #include <stdarg.h>
 
-#include "mea_verbose.h"
-
 #include "minidisplay.h"
 
-// #define DEBUG
+#include "lcd.h"
+
+#include "mea_verbose.h"
+
 
 static inline int _mini_display_commit_diff(struct mini_display_s *mini_display)
 {
@@ -123,7 +124,7 @@ static int _mini_display_debug_display(struct mini_display_s *mini_display, int 
 }
 
 
-void *_mini_display_thread(void *args)
+static void *_mini_display_thread(void *args)
 {
    struct mini_display_s *mini_display=(struct mini_display_s *)args;
 
@@ -149,7 +150,7 @@ void *_mini_display_thread(void *args)
 }
 
 
-pthread_t *_mini_display_thread_start(struct mini_display_s *mini_display)
+static pthread_t *_mini_display_thread_start(struct mini_display_s *mini_display)
 {
    pthread_t *thread=NULL;
 
@@ -428,7 +429,7 @@ mini_display_init_clean_exit:
    return -1;
 }
 
-#ifdef MODULE_R7
+#ifdef MINIDISPLAY_MODULE_R7
 int main(int argc, char *argv[])
 {
    struct mini_display_s display;

@@ -6,6 +6,8 @@
 #include <inttypes.h>
 #include <pthread.h>
 
+#include "lcd.h"
+
 enum driver_type_e { LCD=1 };
 struct display_driver_s
 {

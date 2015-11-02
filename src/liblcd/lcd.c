@@ -204,5 +204,3 @@ int lcd_printf(struct lcd_s *lcd, char const* fmt, ...)
    
    return ret;
 }
-
-

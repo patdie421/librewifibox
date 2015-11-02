@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "configure.h"
+#include "lcd_configure.h"
 
 #include "const.h"
 #include "utils.h"

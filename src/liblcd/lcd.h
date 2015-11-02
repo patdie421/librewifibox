@@ -6,6 +6,8 @@
 #include <inttypes.h>
 
 
+enum backlight_state_e { ON=1, OFF=0 };
+
 struct lcd_s
 {
    void *iface_context; // context du driver de l'interface
@@ -28,9 +30,8 @@ struct lcd_s
    uint16_t x,y;
 };
 
-enum backlight_state_e { ON=1, OFF=0 };
-
 struct lcd_s *lcd_alloc();
+struct lcd_s *lcd_form_cfgfile_alloc(char *cfgfile);
 
 void lcd_free(struct lcd_s **lcd);
 int  lcd_init(struct lcd_s *lcd, int reset);
@@ -42,7 +43,5 @@ int  lcd_clear(struct lcd_s *lcd);
 int  lcd_gotoxy(struct lcd_s *lcd, uint16_t x, uint16_t y);
 int  lcd_print(struct lcd_s *lcd, char *str);
 int  lcd_printf(struct lcd_s *lcd, char const* fmt, ...);
-
-struct lcd_s *lcd_form_cfgfile_alloc(char *cfgfile);
 
 #endif

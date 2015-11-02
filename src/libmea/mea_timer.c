@@ -15,6 +15,35 @@ double mea_now()
 }
 
 
+void mea_nanosleep(uint32_t ns)
+{
+   struct timespec req,res;
+
+   req.tv_sec=0;
+   req.tv_nsec=ns;
+
+   while ( nanosleep(&req,&res) == -1 )
+   {
+      req.tv_sec  = res.tv_sec;
+      req.tv_nsec = res.tv_nsec;
+   }
+}
+
+
+void mea_microsleep(uint32_t usecs)
+{
+   struct timespec delay_time,remaining;
+
+   delay_time.tv_sec = 0;
+   delay_time.tv_nsec = usecs * 1000;
+   while ( nanosleep(&delay_time,&remaining) == -1 )
+   {
+      delay_time.tv_sec  = remaining.tv_sec;
+      delay_time.tv_nsec = remaining.tv_nsec;
+   }
+}
+
+
 uint16_t mea_init_timer(mea_timer_t *aTimer, uint32_t aDelay, uint16_t restartStatus)
 /**
  * \brief     création (initialisation) d'un timer

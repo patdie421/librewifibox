@@ -101,3 +101,4 @@ void strtolower(char *str)
    for(i=0;i<strlen(str);i++)
       str[i]=tolower(str[i]);
 }
+
