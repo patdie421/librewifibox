@@ -482,11 +482,102 @@ int mea_strisnumeric(char *str)
 }
 
 
-#ifdef MODULE_R7
+int mea_strcpy_escs(char *dest, char *source)
+{
+   int i=0,j=0;
+   for(;source[i];i++,j++)
+   {
+      char c=source[i];
+      if(c=='\\')
+      {
+         i++;
+         c=source[i];
+         switch(c)
+         {
+            case '\\':
+            case '"':
+            case '#':
+               break;
+            case 'n':
+               c=10;
+               break;
+            case 'r':
+               c=13;
+               break;
+            default:
+               dest[0]=0;
+               return -1;
+         }
+      }
+      dest[j]=c;
+   }
+   dest[j]=0;
+
+   return 0;
+}
+
+
+int mea_strcpy_escd(char *dest, char *source)
+{
+   int i=0, j=0;
+   for(;source[i];i++,j++)
+   {
+      char c=source[i];
+
+      switch(c)
+      {
+         case '\\':
+         case '"':
+         case '#':
+            dest[j++]='\\';
+            break;
+         case 10:
+            dest[j++]='\\';
+            c='n';
+            break;
+         case 13:
+            dest[j++]='\\';
+            c='r';
+            break;
+      }
+
+      dest[j]=c;
+   }
+   dest[j]=0;
+
+   return 0;
+}
+
+
+int mea_strlen_escaped(char *s)
+{
+   int i=0,j=0;
+
+   for(;s[i];i++)
+   {
+      switch(s[i])
+      {
+         case '\\':
+         case '"':
+         case 10:
+         case 13:
+         case '#':
+            j++;
+            break;
+      }
+      j++;
+   }
+
+   return j;
+}
+
+
+#ifdef MEA_STRING_UTILS_MODULE_R7
 int main(int argc, char *argv[])
 {
    char s1[80]="   ABCDEFG   ";
    char s2[80]="   HIJKLMN   ";
+   char s3[80]="\\\"TO\\\\TO\\\"";
 
    char *str1, *str2, *str1bis, *str2bis = NULL;
 
@@ -495,7 +586,7 @@ int main(int argc, char *argv[])
       fprintf(stderr,"str1bis=\"%s\"\n",str1bis);
    else
       fprintf(stderr,"str1bis=NULL\n");
-   free(strbis1);
+   free(str1bis);
 
    str1=mea_strltrim2(s1);
    if(str1)
@@ -514,6 +605,16 @@ int main(int argc, char *argv[])
       fprintf(stderr,"str2bis=\"%s\"\n",str2bis);
    else
       fprintf(stderr,"str2bis=NULL\n");
+
+   char d1[80],d2[80];
+
+   mea_strcpy_escs(d1,s3);
+   fprintf(stderr,"escs=%s (%s)\n",d1, s3);
+
+   mea_strcpy_escd(d2,d1);
+   fprintf(stderr,"escs=%s (%s)\n",d2, d1);
+
+   fprintf(stderr,"mea_strlen_escaped=%d\n", mea_strlen_escaped(d1));
 
    free(str2);
    free(str2bis);

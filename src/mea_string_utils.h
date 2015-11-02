@@ -34,4 +34,8 @@ char   *mea_string_alloc_and_copy(char *str);
 
 int     mea_strisnumeric(char *str);
 
+int     mea_strcpy_escd(char *dest, char *source);
+int     mea_strcpy_escs(char *dest, char *source);
+int     mea_strlen_escaped(char *s);
+
 #endif

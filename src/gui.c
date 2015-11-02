@@ -314,7 +314,6 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
                   error=error | 0b0001000000000000;
 
             uint32_t __netmask = ~_netmask;
-            fprintf(stderr,"%x %x %x\n", error & 0b01000000 & 0b10000000, (_addr & __netmask),(0xFFFFFFFF & __netmask));
             if( ( error & 0b01000000 & 0b10000000 ) == 0 )
                if( (_addr & __netmask) == (0xFFFFFFFF & __netmask) )
                   error=error | 0b0010000000000000;
@@ -356,7 +355,6 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
                   kill(ppid, SIGHUP);
                   for(;;)
                   {
-                     fprintf(stderr,"reboot_flag=%d\n",reboot_flag);
                      if(reboot_flag==0)
                      {
                         reboot_flag=-1;
@@ -401,7 +399,6 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
       mea_strtrim2(dhcp_end);
    }
 
-   fprintf(stderr,"pass %s %s\n",pass1, pass2);
    mea_memfile_printf(
       mf,
       "<html>"
@@ -859,7 +856,7 @@ static int pages(struct mg_connection *conn, struct session_s *session)
    const struct mg_request_info *request_info = mg_get_request_info(conn);
 
    int i=0;
-
+/*
    DEBUG_SECTION {
       mea_log_printf("query_string = %s, is_ssl = %d\n", request_info->query_string, request_info->is_ssl);
       int i=0;
@@ -868,7 +865,7 @@ static int pages(struct mg_connection *conn, struct session_s *session)
          mea_log_printf("header[%d] : %s = %s\n", i, request_info->http_headers[i].name, request_info->http_headers[i].value); 
       }
    }
-
+*/
    for(;_allpages[i].page_name;i++)
    {
       if(strcmp(_allpages[i].page_name,(char *)request_info->uri)==0)
