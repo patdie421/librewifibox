@@ -217,7 +217,8 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
       goto page_index_clean_exit;
    }
 
-   struct cfgfile_params_s *params = mea_cfgfile_params_alloc(user_params_keys_list);
+//   struct cfgfile_params_s *params = mea_cfgfile_params_alloc(user_params_keys_list);
+   struct cfgfile_params_s *params = mea_cfgfile_params_from_string_alloc(get_user_params_keys_list_str());
    if(params==NULL)
    {
       VERBOSE(1) mea_log_printf("%s (%s) : can't alloc user configuration file\n", ERROR_STR, __func__);
@@ -322,7 +323,8 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
             {
                struct cfgfile_params_s *new_params;
 
-               new_params = mea_cfgfile_params_alloc(user_params_keys_list);
+//               new_params = mea_cfgfile_params_alloc(user_params_keys_list);
+               new_params = mea_cfgfile_params_from_string_alloc(get_user_params_keys_list_str());
                if(new_params == NULL)
                {
                   _httpResponse(conn, "Internal error");
@@ -710,7 +712,8 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
 
    struct mea_memfile_s *mf=NULL;
 
-   struct cfgfile_params_s *params = mea_cfgfile_params_alloc(user_params_keys_list);
+//   struct cfgfile_params_s *params = mea_cfgfile_params_alloc(user_params_keys_list);
+   struct cfgfile_params_s *params = mea_cfgfile_params_from_string_alloc(user_params_keys_list_str);
    if(params==NULL)
    {
       _httpResponse(conn, "Internal error");

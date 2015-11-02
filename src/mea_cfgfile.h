@@ -15,10 +15,13 @@ struct cfgfile_params_s
 {
    uint16_t nb_params;
    struct cfgfile_keyvalue_s *keysvalues_list;
+   uint16_t allocation_flag;
 };
 
 struct cfgfile_params_s
      *mea_cfgfile_params_alloc(struct cfgfile_keyvalue_s *keys_values_list);
+struct cfgfile_params_s
+     *mea_cfgfile_params_from_string_alloc(char *str);
 int   mea_cfgfile_load(char *file, struct cfgfile_params_s *cfgfile_params);
 int   mea_cfgfile_write(char *file, struct cfgfile_params_s *cfgfile_params);
 int   mea_cfgfile_clean(struct cfgfile_params_s *cfgfile_params);

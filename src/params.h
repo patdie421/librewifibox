@@ -36,13 +36,19 @@ enum sys_params_id_e {
    NB_SYSPARAMS
 };
 
-
-extern struct cfgfile_keyvalue_s user_params_keys_list[];
-extern struct cfgfile_keyvalue_s sys_params_keys_list[];
+//extern struct cfgfile_keyvalue_s user_params_keys_list[];
+//extern struct cfgfile_keyvalue_s sys_params_keys_list[];
 //extern char *user_params[];
 //extern char *sys_params[];
+//extern struct cfgfile_params_s *user_params2;
+//extern struct cfgfile_params_s *sys_params2;
 
-extern struct cfgfile_params_s *user_params2;
-extern struct cfgfile_params_s *sys_params2;
+extern char user_params_keys_list_str[];
+char *init_user_params_keys_list_str();
+char *get_user_params_keys_list_str();
+
+extern char sys_params_keys_list_str[];
+char *init_sys_params_keys_list_str();
+char *get_sys_params_keys_list_str();
 
 #endif

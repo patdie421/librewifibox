@@ -52,6 +52,8 @@ char *log_file=NULL;
 struct lcd_s *lcd=NULL;
 struct mini_display_s *display=NULL;
 
+struct cfgfile_params_s *user_params2 = NULL;
+struct cfgfile_params_s *sys_params2 = NULL;
 
 int usage(char *cmnd)
 {
@@ -286,6 +288,7 @@ int main(int argc, char *argv[])
       exit(1);
    }
 
+
    syscfg_file=(char *)malloc(strlen(argv[1])+1);
    if(syscfg_file==NULL)
    {
@@ -294,7 +297,8 @@ int main(int argc, char *argv[])
    }
    strcpy(syscfg_file,argv[1]);
 
-   sys_params2 = mea_cfgfile_params_alloc(sys_params_keys_list);
+//   sys_params2 = mea_cfgfile_params_alloc(sys_params_keys_list);
+   sys_params2 = mea_cfgfile_params_from_string_alloc(init_sys_params_keys_list_str());
    if(sys_params2==NULL)
    {
       VERBOSE(1) mea_log_printf("%s (%s) : can't alloc system configuration file\n", ERROR_STR, __func__);
@@ -308,10 +312,38 @@ int main(int argc, char *argv[])
       exit_code=1;
       goto main_clean_exit;
    }
-//   mea_cfgfile_print(sys_params2);
 
+   // fichier de log
+   char *_log_file = mea_cfgfile_get_value_by_id(sys_params2, LOG_FILE_ID);
+   log_file=(char *)malloc(strlen(_log_file)+1);
+   if(log_file==NULL)
+   {
+      VERBOSE(1) {
+         mea_log_printf("%s (%s) : can't alloc memory - ",ERROR_STR,__func__);
+         perror("");
+      }
+      exit_code=1;
+      goto main_clean_exit;
+   }
+   strcpy(log_file, _log_file);
+
+   int fd=open(log_file, O_CREAT | O_APPEND | O_RDWR, S_IWUSR | S_IRUSR);
+   if(fd<0)
+   {
+      VERBOSE(1) mea_log_printf("%s (%s) : can't open log file - ",ERROR_STR,__func__);
+      perror("");
+      exit_code=1;
+      goto main_clean_exit;
+   }
+   dup2(fd, 1);
+   dup2(fd, 2);
+   close(fd);
+
+
+   init_user_params_keys_list_str();
    char *_connectioncfgfile = mea_cfgfile_get_value_by_id(sys_params2, CONNECTIONCFGFILE_ID);
-   user_params2 = mea_cfgfile_params_alloc(user_params_keys_list);
+//   user_params2 = mea_cfgfile_params_alloc(user_params_keys_list);
+   user_params2 = mea_cfgfile_params_from_string_alloc(user_params_keys_list_str);
    if(user_params2==NULL)
    {
       VERBOSE(1) mea_log_printf("%s (%s) : can't alloc user configuration file\n", ERROR_STR, __func__);
@@ -325,7 +357,11 @@ int main(int argc, char *argv[])
       exit_code=1;
       goto main_clean_exit;
    }
-//   mea_cfgfile_print(user_params2);
+
+   DEBUG_SECTION {
+      mea_cfgfile_print(sys_params2);
+      mea_cfgfile_print(user_params2);
+   }
 
    //
    // récupération des informations nécessaires au fonctionnement
@@ -336,6 +372,7 @@ int main(int argc, char *argv[])
    free_password  = mea_cfgfile_get_value_by_id(user_params2, FREE_PASSWORD_ID);
    www_path       = mea_cfgfile_get_value_by_id(sys_params2, WWW_PATH_ID);
    sslpem_path    = mea_cfgfile_get_value_by_id(sys_params2, SSLPEM_PATH_ID);
+
 
    // adresse ip de l'interface LAN
    if(mea_getifaceaddr(mea_cfgfile_get_value_by_id(sys_params2, HOSTAPD_IFACE_ID), lan_addr)<0)
@@ -454,32 +491,6 @@ int main(int argc, char *argv[])
          button2=-1;
    }
 
-
-   // fichier de log
-   char *_log_file = mea_cfgfile_get_value_by_id(sys_params2, LOG_FILE_ID);
-   log_file=(char *)malloc(strlen(_log_file)+1);
-   if(log_file==NULL)
-   {
-      VERBOSE(1) {
-         mea_log_printf("%s (%s) : can't alloc memory - ",ERROR_STR,__func__);
-         perror("");
-      }
-      exit_code=1;
-      goto main_clean_exit;
-   }
-   strcpy(log_file, _log_file);
-
-   int fd=open(log_file, O_CREAT | O_APPEND | O_RDWR, S_IWUSR | S_IRUSR);
-   if(fd<0)
-   {
-      VERBOSE(1) mea_log_printf("%s (%s) : can't open log file - ",ERROR_STR,__func__);
-      perror("");
-      exit_code=1;
-      goto main_clean_exit;
-   }
-   dup2(fd, 1);
-   dup2(fd, 2);
-   close(fd);
 
    //
    // initialisation de la gestion des signaux
