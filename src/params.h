@@ -32,13 +32,17 @@ enum sys_params_id_e {
    LOG_FILE_ID,
    INTERFACES_TEMPLATE_ID,
    UDHCPD_CFG_TEMPLATE_ID,
+   VERBOSE_LEVEL_ID,
    NB_SYSPARAMS
 };
 
 
 extern struct cfgfile_keyvalue_s user_params_keys_list[];
 extern struct cfgfile_keyvalue_s sys_params_keys_list[];
-extern char *user_params[];
-extern char *sys_params[];
+//extern char *user_params[];
+//extern char *sys_params[];
+
+extern struct cfgfile_params_s *user_params2;
+extern struct cfgfile_params_s *sys_params2;
 
 #endif

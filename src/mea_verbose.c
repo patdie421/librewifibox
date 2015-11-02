@@ -85,7 +85,7 @@ int mea_rotate_open_log_file(FILE *fd, char *name, uint16_t max_index)
          goto mea_rotate_open_log_file_clean_exit;
       }
     
-      flock(fileno(fd),LOCK_EX);
+      flock(fileno(fd), LOCK_EX);
 
       fseek(fd, 0, SEEK_SET);
       // size_t fread ( void * ptr, size_t size, size_t count, FILE * stream );
@@ -97,7 +97,7 @@ int mea_rotate_open_log_file(FILE *fd, char *name, uint16_t max_index)
       }
       ftruncate(fileno(fd), 0);
  
-      flock(fileno(fd),LOCK_UN);
+      flock(fileno(fd), LOCK_UN);
 
       close(fd_dest);
    }
@@ -143,13 +143,13 @@ void mea_log_printf(char const* fmt, ...)
 
    va_start(args, fmt);
 
-   flock(fileno(MEA_STDERR),LOCK_EX);
+   flock(fileno(MEA_STDERR), LOCK_EX);
 
    fprintf(MEA_STDERR, "%s ", date_str);
    vfprintf(MEA_STDERR, fmt, args);
 
-   flock(fileno(MEA_STDERR),LOCK_UN);
-  
+   flock(fileno(MEA_STDERR), LOCK_UN);
+
    va_end(args);
 }
 

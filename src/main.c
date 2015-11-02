@@ -25,9 +25,9 @@
 #include "mea_string_utils.h"
 #include "mea_cfgfile.h"
 
-#include "processManager.h"
 #include "minidisplay.h"
 #include "params.h"
+#include "processManager.h"
 
 #include "access_point.h"
 #include "scanner.h"
@@ -55,7 +55,7 @@ struct mini_display_s *display=NULL;
 
 int usage(char *cmnd)
 {
-   fprintf(stderr,"usage : %s cfgfile\n");
+   fprintf(stderr,"usage : %s cfgfile\n", cmnd);
 
    return -1;
 }
@@ -66,7 +66,9 @@ int logfile_rotation_job(int my_id, void *data, char *errmsg, int l_errmsg)
    if(log_file)
    {
       mea_log_printf("%s (%s) : job rotation start\n", INFO_STR, __func__);
+
       mea_rotate_open_log_file(MEA_STDERR, log_file, 6);
+
       mea_log_printf("%s (%s) : job rotation done\n", INFO_STR, __func__);
    }
    return;
@@ -117,8 +119,19 @@ void stop_all(int exit_code)
       }
    }
 
-   mea_clean_cfgfile(sys_params, NB_SYSPARAMS);
-   mea_clean_cfgfile(user_params, NB_USERPARAMS);
+   if(sys_params2)
+   {
+      mea_cfgfile_clean(sys_params2);
+      free(sys_params2);
+      sys_params2=NULL;
+   }
+
+   if(user_params2)
+   {
+      mea_cfgfile_clean(user_params2);
+      free(user_params2);
+      user_params2=NULL;
+   }
 
    if(syscfg_file)
    {
@@ -159,15 +172,15 @@ void sighup_handler(int signo)
       VERBOSE(2) mea_log_printf("%s (%s) : reload new parameters\n", INFO_STR, __func__);
 
       // sauvegarde temporaire des anciens valeurs
-      strncpy(free_id_prev, user_params[FREE_ID_ID],sizeof(free_id_prev));
-      strncpy(free_passwd_prev, user_params[FREE_PASSWORD_ID], sizeof(free_passwd_prev));
-      strncpy(hostapd_essid_prev, user_params[MY_ESSID_ID], sizeof(hostapd_essid_prev));
-      strncpy(hostapd_passwd_prev, user_params[MY_PASSWORD_ID], sizeof(hostapd_passwd_prev));
-      strncpy(ip_netmask_prev, user_params[MY_IP_AND_NETMASK_ID], sizeof(ip_netmask_prev));
-      strncpy(dhcp_start_end_prev, user_params[MY_DHCP_RANGE_ID], sizeof(dhcp_start_end_prev));
+      strncpy(free_id_prev,        mea_cfgfile_get_value_by_id(user_params2, FREE_ID_ID),           sizeof(free_id_prev));
+      strncpy(free_passwd_prev,    mea_cfgfile_get_value_by_id(user_params2, FREE_PASSWORD_ID),     sizeof(free_passwd_prev));
+      strncpy(hostapd_essid_prev,  mea_cfgfile_get_value_by_id(user_params2, MY_ESSID_ID),          sizeof(hostapd_essid_prev));
+      strncpy(hostapd_passwd_prev, mea_cfgfile_get_value_by_id(user_params2, MY_PASSWORD_ID),       sizeof(hostapd_passwd_prev));
+      strncpy(ip_netmask_prev,     mea_cfgfile_get_value_by_id(user_params2, MY_IP_AND_NETMASK_ID), sizeof(ip_netmask_prev));
+      strncpy(dhcp_start_end_prev, mea_cfgfile_get_value_by_id(user_params2, MY_DHCP_RANGE_ID),     sizeof(dhcp_start_end_prev));
 
       // chargement des nouvelles valeurs
-      int ret=mea_load_cfgfile(sys_params[CONNECTIONCFGFILE_ID], user_params_keys_list, user_params, NB_USERPARAMS);
+      int ret=mea_cfgfile_load(mea_cfgfile_get_value_by_id(sys_params2,CONNECTIONCFGFILE_ID), user_params2);
       if(ret<0)
       {
          VERBOSE(2) mea_log_printf("%s (%s) : can't reload cfg file\n", ERROR_STR, __func__);
@@ -176,17 +189,33 @@ void sighup_handler(int signo)
       }
 
      
-      if( strcmp(hostapd_essid_prev,  user_params[MY_ESSID_ID])!=0 ||
-          strcmp(hostapd_passwd_prev, user_params[MY_PASSWORD_ID])!=0 ||
-          strcmp(ip_netmask_prev,     user_params[MY_IP_AND_NETMASK_ID])!=0 ||
-          strcmp(dhcp_start_end_prev, user_params[MY_DHCP_RANGE_ID])!=0)
+      if( strcmp(hostapd_essid_prev,  mea_cfgfile_get_value_by_id(user_params2, MY_ESSID_ID))!=0 ||
+          strcmp(hostapd_passwd_prev, mea_cfgfile_get_value_by_id(user_params2, MY_PASSWORD_ID))!=0 ||
+          strcmp(ip_netmask_prev,     mea_cfgfile_get_value_by_id(user_params2, MY_IP_AND_NETMASK_ID))!=0 ||
+          strcmp(dhcp_start_end_prev, mea_cfgfile_get_value_by_id(user_params2, MY_DHCP_RANGE_ID))!=0)
       {
           set_reboot_flag(1); // pour que gui affiche une page d'info reboot
 
           // reconfiguration des fichiers systeme
-          create_hostapd_cfg(sys_params[HOSTAPD_CFG_TEMPLATE_ID], "/etc/hostapd/hostapd.conf", sys_params[HOSTAPD_IFACE_ID], user_params[MY_ESSID_ID], user_params[MY_PASSWORD_ID]);
-          create_interfaces_cfg(sys_params[INTERFACES_TEMPLATE_ID], "/etc/network/interfaces", user_params[MY_IP_AND_NETMASK_ID]);
-          create_udhcpd_cfg(sys_params[UDHCPD_CFG_TEMPLATE_ID], "/etc/udhcpd.conf", sys_params[HOSTAPD_IFACE_ID], user_params[MY_IP_AND_NETMASK_ID], user_params[MY_DHCP_RANGE_ID]);
+          create_hostapd_cfg(
+             mea_cfgfile_get_value_by_id(sys_params2,HOSTAPD_CFG_TEMPLATE_ID),
+             "/etc/hostapd/hostapd.conf",
+             mea_cfgfile_get_value_by_id(sys_params2, HOSTAPD_IFACE_ID),
+             mea_cfgfile_get_value_by_id(user_params2, MY_ESSID_ID),
+             mea_cfgfile_get_value_by_id(user_params2, MY_PASSWORD_ID)
+          );
+          create_interfaces_cfg(
+             mea_cfgfile_get_value_by_id(sys_params2,INTERFACES_TEMPLATE_ID),
+             "/etc/network/interfaces",
+             mea_cfgfile_get_value_by_id(user_params2, MY_IP_AND_NETMASK_ID)
+          );
+          create_udhcpd_cfg(
+             mea_cfgfile_get_value_by_id(sys_params2, UDHCPD_CFG_TEMPLATE_ID),
+             "/etc/udhcpd.conf",
+             mea_cfgfile_get_value_by_id(sys_params2, HOSTAPD_IFACE_ID),
+             mea_cfgfile_get_value_by_id(user_params2, MY_IP_AND_NETMASK_ID),
+             mea_cfgfile_get_value_by_id(user_params2, MY_DHCP_RANGE_ID)
+          );
 
           VERBOSE(2) mea_log_printf("%s (%s) : new parameters need a reboot\n", INFO_STR, __func__);
 
@@ -199,19 +228,19 @@ void sighup_handler(int signo)
       else
           set_reboot_flag(0); // pas besoin de rebooter pour les autres changements de config
 
-      if( strcmp(free_id_prev, user_params[FREE_ID_ID])!=0 ||
-          strcmp(free_passwd_prev, user_params[FREE_PASSWORD_ID])!=0)
+      if( strcmp(free_id_prev,     mea_cfgfile_get_value_by_id(user_params2, FREE_ID_ID))!=0 ||
+          strcmp(free_passwd_prev, mea_cfgfile_get_value_by_id(user_params2, FREE_PASSWORD_ID))!=0)
       {
          process_stop(linkServer_monitoring_id, NULL, 0);
 
-         ifupdown(linkServer_monitoring_id, sys_params[IFACE_INTERNET_ID], 0);
+         ifupdown(linkServer_monitoring_id, mea_cfgfile_get_value_by_id(sys_params2, IFACE_INTERNET_ID), 0);
 
          struct linkServerData_s *linkServer_start_stop_params;
          linkServer_start_stop_params=process_get_data_ptr(linkServer_monitoring_id);
          if(linkServer_start_stop_params)
          {
-            strncpy(linkServer_start_stop_params->free_passwd, user_params[FREE_PASSWORD_ID], sizeof(linkServer_start_stop_params->free_passwd));
-            strncpy(linkServer_start_stop_params->free_id, user_params[FREE_ID_ID], sizeof(linkServer_start_stop_params->free_id));
+            strncpy(linkServer_start_stop_params->free_passwd, mea_cfgfile_get_value_by_id(user_params2, FREE_PASSWORD_ID), sizeof(linkServer_start_stop_params->free_passwd));
+            strncpy(linkServer_start_stop_params->free_id, mea_cfgfile_get_value_by_id(user_params2, FREE_ID_ID), sizeof(linkServer_start_stop_params->free_id));
          }
  
          process_start(linkServer_monitoring_id, NULL, 0);
@@ -231,6 +260,8 @@ int main(int argc, char *argv[])
    char *internet_essid=NULL;
    char *free_id=NULL;
    char *free_password=NULL;
+   char *www_path=NULL;
+   char *sslpem_path=NULL;
    int http_port=-1, https_port=-1;
 
    char lan_addr[16];
@@ -263,79 +294,96 @@ int main(int argc, char *argv[])
    }
    strcpy(syscfg_file,argv[1]);
 
-   // parametres system
-   memset(sys_params, 0, sizeof(char *)*NB_SYSPARAMS);
-   ret=mea_load_cfgfile(syscfg_file, sys_params_keys_list, sys_params, NB_SYSPARAMS);
+   sys_params2 = mea_cfgfile_params_alloc(sys_params_keys_list);
+   if(sys_params2==NULL)
+   {
+      VERBOSE(1) mea_log_printf("%s (%s) : can't alloc system configuration file\n", ERROR_STR, __func__);
+      exit_code=1;
+      goto main_clean_exit;
+   }
+   ret=mea_cfgfile_load(syscfg_file, sys_params2);
    if(ret<0)
    {
       VERBOSE(1) mea_log_printf("%s (%s) : can't load system configuration file\n",ERROR_STR,__func__);
       exit_code=1;
       goto main_clean_exit;
    }
+//   mea_cfgfile_print(sys_params2);
 
-   // parametres utilisateur
-   memset(user_params, 0, sizeof(char *)*NB_USERPARAMS);
-   ret=mea_load_cfgfile(sys_params[CONNECTIONCFGFILE_ID], user_params_keys_list, user_params, NB_USERPARAMS);
+   char *_connectioncfgfile = mea_cfgfile_get_value_by_id(sys_params2, CONNECTIONCFGFILE_ID);
+   user_params2 = mea_cfgfile_params_alloc(user_params_keys_list);
+   if(user_params2==NULL)
+   {
+      VERBOSE(1) mea_log_printf("%s (%s) : can't alloc user configuration file\n", ERROR_STR, __func__);
+      exit_code=1;
+      goto main_clean_exit;
+   }
+   ret=mea_cfgfile_load(_connectioncfgfile, user_params2);
    if(ret<0)
    {
       VERBOSE(1) mea_log_printf("%s (%s) : can't load user configuration file\n",ERROR_STR,__func__);
       exit_code=1;
       goto main_clean_exit;
    }
-
+//   mea_cfgfile_print(user_params2);
 
    //
    // récupération des informations nécessaires au fonctionnement
    //
-   internet_essid=sys_params[ESSID_INTERNET_ID];
-   internet_iface=sys_params[IFACE_INTERNET_ID];
-   free_id=user_params[FREE_ID_ID];
-   free_password=user_params[FREE_PASSWORD_ID];
+   internet_essid = mea_cfgfile_get_value_by_id(sys_params2, ESSID_INTERNET_ID);
+   internet_iface = mea_cfgfile_get_value_by_id(sys_params2, IFACE_INTERNET_ID);
+   free_id        = mea_cfgfile_get_value_by_id(user_params2, FREE_ID_ID);
+   free_password  = mea_cfgfile_get_value_by_id(user_params2, FREE_PASSWORD_ID);
+   www_path       = mea_cfgfile_get_value_by_id(sys_params2, WWW_PATH_ID);
+   sslpem_path    = mea_cfgfile_get_value_by_id(sys_params2, SSLPEM_PATH_ID);
 
    // adresse ip de l'interface LAN
-   if(mea_getifaceaddr(sys_params[HOSTAPD_IFACE_ID], lan_addr)<0)
+   if(mea_getifaceaddr(mea_cfgfile_get_value_by_id(sys_params2, HOSTAPD_IFACE_ID), lan_addr)<0)
    {
-      VERBOSE(1) mea_log_printf("%s (%s) : no local addr on \"%s\" interface\n", ERROR_STR, __func__, sys_params[HOSTAPD_IFACE_ID]);
+      VERBOSE(1) mea_log_printf("%s (%s) : no local addr on \"%s\" interface\n", ERROR_STR, __func__, mea_cfgfile_get_value_by_id(sys_params2, HOSTAPD_IFACE_ID));
       exit_code=1;
       goto main_clean_exit;
    }
 
+
    // ports des services http(s)
-   if(mea_strisnumeric(sys_params[HTTP_PORT_ID])==0)
-      http_port=atoi(sys_params[HTTP_PORT_ID]);
+   char *_http_port = mea_cfgfile_get_value_by_id(sys_params2, HTTP_PORT_ID);
+   if(mea_strisnumeric(_http_port)==0)
+      http_port=atoi(_http_port);
    else
    {
-      struct servent *serv = getservbyname(sys_params[HTTP_PORT_ID], "tcp"); 
+      struct servent *serv = getservbyname(_http_port, "tcp"); 
       if(serv)
          http_port=ntohs(serv->s_port);
    }
    if(http_port < 0 || http_port > 0xFFFF)
    {
-      VERBOSE(1) mea_log_printf("%s (%s) : incorrect http port (%s)\n", ERROR_STR, __func__, sys_params[HTTP_PORT_ID]);
+      VERBOSE(1) mea_log_printf("%s (%s) : incorrect http port (%s)\n", ERROR_STR, __func__, _http_port);
       exit_code=1;
       goto main_clean_exit;
    }
 
-   if(mea_strisnumeric(sys_params[HTTPS_PORT_ID])==0)
-      https_port=atoi(sys_params[HTTPS_PORT_ID]);
+   char *_https_port = mea_cfgfile_get_value_by_id(sys_params2, HTTPS_PORT_ID);
+   if(mea_strisnumeric(_https_port)==0)
+      https_port=atoi(_https_port);
    else
    {
-      struct servent *serv = getservbyname(sys_params[HTTPS_PORT_ID], "tcp"); 
+      struct servent *serv = getservbyname(_https_port, "tcp"); 
       if(serv)
          https_port=ntohs(serv->s_port);
    }
-   if(http_port < 0 || http_port > 0xFFFF)
+   if(https_port < 0 || https_port > 0xFFFF)
    {
-      VERBOSE(1) mea_log_printf("%s (%s) : incorrect https port (%s)\n", ERROR_STR, __func__, sys_params[HTTPS_PORT_ID]);
+      VERBOSE(1) mea_log_printf("%s (%s) : incorrect https port (%s)\n", ERROR_STR, __func__, _https_port);
       exit_code=1;
       goto main_clean_exit;
    }
 
 
    // affichage LCD
-   if(strcmp(sys_params[LCD_DISPLAY_ENABLED_ID],"yes")==0)
+   if(strcmp(mea_cfgfile_get_value_by_id(sys_params2, LCD_DISPLAY_ENABLED_ID),"yes")==0)
    {
-      lcd = lcd_form_cfgfile_alloc(sys_params[LCDCFGFILE_ID]);
+      lcd = lcd_form_cfgfile_alloc(mea_cfgfile_get_value_by_id(sys_params2, LCDCFGFILE_ID));
       if(lcd == NULL)
       {
          VERBOSE(2) {
@@ -378,13 +426,14 @@ int main(int argc, char *argv[])
 
 
    // boutons GPIO
-   if(strcmp(sys_params[GPIO_BUTTONS_ENABLED_ID],"yes")==0)
+   if(strcmp(mea_cfgfile_get_value_by_id(sys_params2, GPIO_BUTTONS_ENABLED_ID),"yes")==0)
    {
       buttons_enabled=0;
 
-      if(mea_strisnumeric(sys_params[GPIO_BUTTON1_ID])==0)
+      char *_gpio_button1 = mea_cfgfile_get_value_by_id(sys_params2, GPIO_BUTTON1_ID);
+      if(mea_strisnumeric(_gpio_button1)==0)
       {
-         button1=atoi(sys_params[GPIO_BUTTON1_ID]);
+         button1=atoi(_gpio_button1);
          mea_gpio_export(button1);
          mea_gpio_set_dir(button1, 0); // en entrée
          mea_gpio_set_edge(button1, "both");
@@ -393,9 +442,10 @@ int main(int argc, char *argv[])
       else
          button1=-1;
 
-      if(mea_strisnumeric(sys_params[GPIO_BUTTON2_ID])==0)
+      char *_gpio_button2 = mea_cfgfile_get_value_by_id(sys_params2, GPIO_BUTTON2_ID);
+      if(mea_strisnumeric(_gpio_button2)==0)
       {
-         button2=atoi(sys_params[GPIO_BUTTON2_ID]);
+         button2=atoi(_gpio_button2);
          mea_gpio_export(button2);
          mea_gpio_set_dir(button2, 0); // en entrée
          button2_fd=mea_gpio_fd_open(button2);
@@ -404,8 +454,10 @@ int main(int argc, char *argv[])
          button2=-1;
    }
 
+
    // fichier de log
-   log_file=(char *)malloc(strlen(sys_params[LOG_FILE_ID]+1));
+   char *_log_file = mea_cfgfile_get_value_by_id(sys_params2, LOG_FILE_ID);
+   log_file=(char *)malloc(strlen(_log_file)+1);
    if(log_file==NULL)
    {
       VERBOSE(1) {
@@ -415,7 +467,7 @@ int main(int argc, char *argv[])
       exit_code=1;
       goto main_clean_exit;
    }
-   strcpy(log_file,sys_params[LOG_FILE_ID]);
+   strcpy(log_file, _log_file);
 
    int fd=open(log_file, O_CREAT | O_APPEND | O_RDWR, S_IWUSR | S_IRUSR);
    if(fd<0)
@@ -477,13 +529,15 @@ int main(int argc, char *argv[])
 
    init_processes_manager(1);
 
+
    //
    // lancement des threads et process
    //
    struct guiServerData_s guiServer_start_stop_params;
    guiServer_start_stop_params.addr=lan_addr;
-   strncpy(guiServer_start_stop_params.home, sys_params[WWW_PATH_ID], sizeof(guiServer_start_stop_params.home));
-   strncpy(guiServer_start_stop_params.sslpem, sys_params[SSLPEM_PATH_ID], sizeof(guiServer_start_stop_params.sslpem));
+   strncpy(guiServer_start_stop_params.home, www_path, sizeof(guiServer_start_stop_params.home));
+   strncpy(guiServer_start_stop_params.sslpem, sslpem_path, sizeof(guiServer_start_stop_params.sslpem));
+   strncpy(guiServer_start_stop_params.user_params_file, _connectioncfgfile, sizeof(guiServer_start_stop_params.user_params_file));
    guiServer_start_stop_params.http_port=http_port;
    guiServer_start_stop_params.https_port=https_port;
    guiServer_monitoring_id=process_register("guiServer");

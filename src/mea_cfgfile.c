@@ -24,34 +24,140 @@ static int _getParamID(struct cfgfile_keyvalue_s params_list[], char *str)
 }
 
 
-static char *_getParamKey(struct cfgfile_keyvalue_s params_list[], int id)
+static char *_getParamKey(struct cfgfile_keyvalue_s keys_values_list[], int id)
 {
    uint16_t i;
-   for(i=0;params_list[i].key;i++)
+   for(i=0;keys_values_list[i].key;i++)
    {
-      if(params_list[i].id == id)
-         return params_list[i].key;
+      if(keys_values_list[i].id == id)
+         return keys_values_list[i].key;
    }
    return NULL;
 }
 
 
-int mea_clean_cfgfile(char *params[], uint16_t nb_params)
+static struct cfgfile_keyvalue_s *_getKeyValue(struct cfgfile_params_s *cfgfile_params, char *key)
 {
-   int i=0;
-   for(;i<nb_params;i++)
+   if(!key)
+      return NULL;
+ 
+   uint16_t i;
+   for(i=0;cfgfile_params->keysvalues_list[i].key;i++)
    {
-      if(params[i])
+      if(mea_strcmplower(cfgfile_params->keysvalues_list[i].key, key) == 0)
+         return &cfgfile_params->keysvalues_list[i];
+   }
+   return NULL;
+}
+
+
+void mea_cfgfile_print(struct cfgfile_params_s *cfgfile_params)
+{
+   uint16_t i;
+   for(i=0;cfgfile_params->keysvalues_list[i].key;i++)
+   {
+      if(cfgfile_params->keysvalues_list[i].value)
+         fprintf(stderr,"%s = %s\n", cfgfile_params->keysvalues_list[i].key, cfgfile_params->keysvalues_list[i].value);
+      else
+         fprintf(stderr,"%s = %s\n", cfgfile_params->keysvalues_list[i].key, cfgfile_params->keysvalues_list[i].default_value);
+   }
+}
+
+
+char *mea_cfgfile_get_value_by_id(struct cfgfile_params_s *cfgfile_params, int id)
+{
+   if(id<0 || id >= cfgfile_params->nb_params)
+      return NULL;
+
+   int i=0;
+   for(;i<cfgfile_params->nb_params;i++)
+   {
+      if(cfgfile_params->keysvalues_list[i].id == id)
       {
-         free(params[i]);
-         params[i]=NULL;
+         if(cfgfile_params->keysvalues_list[i].value == NULL)
+            return cfgfile_params->keysvalues_list[i].default_value;
+         else
+            return cfgfile_params->keysvalues_list[i].value;
       }
    }
+
+   return NULL;
+}
+
+
+int mea_cfgfile_set_value_by_id(struct cfgfile_params_s *cfgfile_params, int id, char *value)
+{
+   if(id<0 || id >= cfgfile_params->nb_params)
+      return -1;
+
+   int i=0;
+   for(;i<cfgfile_params->nb_params;i++)
+   {
+      if(cfgfile_params->keysvalues_list[i].id == id)
+      {
+         char *ptr=(char *)malloc(strlen(value)+1);
+         if(ptr==NULL)
+            return -1;
+
+         if(cfgfile_params->keysvalues_list[i].value)
+            free(cfgfile_params->keysvalues_list[i].value);
+         cfgfile_params->keysvalues_list[i].value = ptr;
+
+         strcpy(ptr, value);
+      }
+   }
+
+   return NULL;
+}
+
+
+struct cfgfile_params_s *mea_cfgfile_params_alloc(struct cfgfile_keyvalue_s *keys_values_list)
+{
+   if(keys_values_list == NULL)
+      return NULL;
+
+   struct cfgfile_params_s *params = (struct cfgfile_params_s *)malloc(sizeof(struct cfgfile_params_s));
+
+   if(params==NULL)
+      return NULL;
+
+   int i=0;
+   for(;keys_values_list[i].key;i++);
+   if(i==0)
+   {
+      free(params);
+      params=NULL;
+      return NULL; 
+   }
+
+   params->nb_params = i;
+
+   params->keysvalues_list=keys_values_list;
+
+   return params;
+}
+
+
+int mea_cfgfile_clean(struct cfgfile_params_s *cfgfile_params)
+{
+   if(cfgfile_params == NULL)
+      return -1;
+
+   int i=0;
+   for(;i<cfgfile_params->nb_params;i++)
+   {
+      if(cfgfile_params->keysvalues_list[i].value)
+      {
+         free(cfgfile_params->keysvalues_list[i].value);
+         cfgfile_params->keysvalues_list[i].value=NULL;
+      }
+   }
+
    return 0;
 }
 
 
-int mea_write_cfgfile(char *file, struct cfgfile_keyvalue_s *keys_names_list, char *params[], uint16_t nb_params)
+int mea_cfgfile_write(char *file, struct cfgfile_params_s *cfgfile_params)
 {
    int ret_code=0;
    FILE *fd;
@@ -64,16 +170,17 @@ int mea_write_cfgfile(char *file, struct cfgfile_keyvalue_s *keys_names_list, ch
    }
 
    int i=0;
-   for(;i<nb_params;i++)
+   for(;i<cfgfile_params->nb_params;i++)
    {
-      int j=0;
-      for(;j<nb_params;j++)
+      if(cfgfile_params->keysvalues_list[i].value)
       {
-         if(keys_names_list[j].id==i)
-         {
-            fprintf(fd,"%s = %s\n", keys_names_list[j].key, params[i]);
-            DEBUG_SECTION mea_log_printf("%s = %s\n", keys_names_list[j].key, params[i]);
-         }
+         fprintf(fd,"%s = %s\n", cfgfile_params->keysvalues_list[i].key, cfgfile_params->keysvalues_list[i].value);
+         DEBUG_SECTION mea_log_printf("%s = %s\n", cfgfile_params->keysvalues_list[i].key, cfgfile_params->keysvalues_list[i].value);
+      }
+      else
+      {
+         fprintf(fd,"%s = %s\n", cfgfile_params->keysvalues_list[i].key, cfgfile_params->keysvalues_list[i].default_value);
+         DEBUG_SECTION mea_log_printf("%s = %s\n", cfgfile_params->keysvalues_list[i].key, cfgfile_params->keysvalues_list[i].value);
       }
    } 
 
@@ -83,9 +190,12 @@ mea_write_cfgfile_clean_exit:
 }
 
 
-int mea_load_cfgfile(char *file, struct cfgfile_keyvalue_s *keys_names_list, char *params[], uint16_t nb_params)
+int mea_cfgfile_load(char *file, struct cfgfile_params_s *cfgfile_params)
 {
    FILE *fd;
+
+   if(cfgfile_params==NULL || cfgfile_params->nb_params <= 0 || cfgfile_params->keysvalues_list==NULL)
+      return -1;
  
    fd=fopen(file, "r");
    if(!fd)
@@ -93,22 +203,17 @@ int mea_load_cfgfile(char *file, struct cfgfile_keyvalue_s *keys_names_list, cha
       perror("");
       return -1;
    }
+
+   struct cfgfile_keyvalue_s *keys_names_list = cfgfile_params->keysvalues_list;
  
    int i=0;
-   for(i=0;i<nb_params;i++)
+   for(;keys_names_list[i].key;i++)
    {
-      if(params[i])
+      if(cfgfile_params->keysvalues_list[i].value)
       {
-         free(params[i]);
-         params[i]=NULL;
+         free(cfgfile_params->keysvalues_list[i].value);
+         cfgfile_params->keysvalues_list[i].value=NULL;
       }
-      params[i]=(char *)malloc(strlen(keys_names_list[i].default_value)+1);
-      if(params[i]==NULL)
-      {
-         fprintf(stderr,"error - malloc error\n");
-         goto mea_load_config_file_clean_exit;
-      }
-      strcpy(params[i],keys_names_list[i].default_value);
    }
  
    char line[255];
@@ -122,7 +227,7 @@ int mea_load_cfgfile(char *file, struct cfgfile_keyvalue_s *keys_names_list, cha
       if(fgets(line,sizeof(line),fd) != NULL)
       {
          i++;
-         // suppression du commentaire éntuellement présent dans la ligne
+         // suppression du commentaire éventuellement présent dans la ligne
          mea_strsplit(line, '#', nocomment, 2);
          char *keyvalue=mea_strtrim(nocomment[0]);
          if(strlen(keyvalue)==0)
@@ -135,8 +240,7 @@ int mea_load_cfgfile(char *file, struct cfgfile_keyvalue_s *keys_names_list, cha
  
          if(key[0]==0 || value[0]==0)
          {
-            VERBOSE(9) mea_log_printf("syntax error : %s, line %d not a \"key = value\" line\n", file, i);
-//            goto mea_load_config_file_clean_exit;
+            VERBOSE(9) mea_log_printf("warning, syntax error : %s, line %d not a \"key = value\" line\n", file, i);
             continue;
          }
          
@@ -145,36 +249,36 @@ int mea_load_cfgfile(char *file, struct cfgfile_keyvalue_s *keys_names_list, cha
          mea_strtolower(tkey);
 //         mea_strtolower(tvalue);
 
-         int id;
-         id=_getParamID(keys_names_list, tkey);
-         if(id<0)
+         struct cfgfile_keyvalue_s *param=_getKeyValue(cfgfile_params, tkey);
+
+         if(param==NULL)
          {
             mea_log_printf("warning : \"%s\" unknown parameter\n",tkey);
             continue;
          }
 
-         if(params[id])
-            free(params[id]); 
-         params[id]=(char *)malloc(strlen(tvalue)+1);
-         if(params[id]==NULL)
+         if(param->value)
+            free(param->value); 
+         param->value=(char *)malloc(strlen(tvalue)+1);
+         if(param->value==NULL)
          {
             mea_log_printf("error - malloc error\n");
             goto mea_load_config_file_clean_exit;
          }
 
-         strcpy(params[id],tvalue);
+         strcpy(param->value,tvalue);
       }
    }
  
    return 0;
    
 mea_load_config_file_clean_exit:
-   for(i=0;i<nb_params;i++)
+   for(i=0;i<cfgfile_params->nb_params;i++)
    {
-      if(params[i])
+      if(cfgfile_params->keysvalues_list[i].value)
       {
-         free(params[i]);
-         params[i]=NULL;
+         free(cfgfile_params->keysvalues_list[i].value);
+         cfgfile_params->keysvalues_list[i].value=NULL;
       }
    }
 
@@ -218,6 +322,7 @@ int mea_create_file_from_template(char *template_file, char *dest_file, ...)
          s=va_arg(argp, char *);
          args[i].var=(char *)malloc(strlen(s)+1);
          strcpy(args[i].var,s);
+
          s=va_arg(argp, char *);
          args[i].val=(char *)malloc(strlen(s)+1);
          strcpy(args[i].val,s);
@@ -275,7 +380,7 @@ int mea_create_file_from_template(char *template_file, char *dest_file, ...)
                   int found_flag=-1;
                   for(;i<args_count;i++)
                   {
-                     fprintf(stderr,"'%s'=='%s'?\n",var,args[i].var);
+//                     fprintf(stderr,"'%s'=='%s'?\n",var,args[i].var);
                      if(strcmp(var,args[i].var)==0)
                      {
                         mea_memfile_printf(mf, "%s", args[i].val);
@@ -352,11 +457,10 @@ create_cfg_from_template_clean_exit:
 }
 
 
-#ifdef MODULE_R7
+#ifdef MEA_CFGFILE_MODULE_R7
 int main(int argc, char *argv[])
 {
    mea_create_file_from_template("../etc/interfaces.template", "interfaces.txt", "boxip", "192.168.10.2", "netmask", "255.255.255.0", NULL);
    fprintf(stderr,"\n");
 }
-
 #endif

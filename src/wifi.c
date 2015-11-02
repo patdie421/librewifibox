@@ -525,9 +525,16 @@ int wifi_connection_status(char *iface, float *q, float *l)
 int waitessid(char *iface, char *essid, float min_quality, int timeout)
 {
    float qmax, qmin, lmax, lmin;
+   mea_timer_t timer;
+
+   mea_init_timer(&timer,timeout,1);
+   mea_start_timer(&timer);
 
    for(;;)
    {
+      if(mea_test_timer(&timer)==0)
+         return -1;
+
       int ret=wifi_ap_find(iface, essid, &qmax, &lmax, &qmin, &lmin);
       if(ret<0)
       {
@@ -544,6 +551,9 @@ int waitessid(char *iface, char *essid, float min_quality, int timeout)
          DEBUG_SECTION mea_log_printf("%s (%s) : %d x %s found - max(%2.0f%% / %2.0fdb), min(%2.0f%% / %2.0fdb)\n",DEBUG_STR,__func__, ret, essid, qmax*100.0, lmax, qmin*100.0, lmin);
          return ret;
       }
+
+      sleep(1);
    }
-   sleep(1);
+
+   return -1;
 }

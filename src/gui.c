@@ -32,6 +32,7 @@ char *val_document_root=NULL;
 char *val_listening_ports=NULL;
 char *val_num_threads=NULL;
 char *val_sslpem=NULL;
+char *val_user_params_file=NULL;
 
 char *titre="LibreWifi2";
 
@@ -210,23 +211,26 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
    char freewifi_login[21]="", freewifi_pass[33]="";
    char submited[2]="";
 
-   char *params[NB_USERPARAMS];
-   memset(params,0,sizeof(params));
-
    if(session->logged_in==0)
    {
       _httpResponseRedirect(conn, "/login.html");
       goto page_index_clean_exit;
-      return 1;
    }
 
-   int ret=mea_load_cfgfile(sys_params[CONNECTIONCFGFILE_ID], user_params_keys_list, params, NB_USERPARAMS);
-   if(ret<0)
+   struct cfgfile_params_s *params = mea_cfgfile_params_alloc(user_params_keys_list);
+   if(params==NULL)
    {
-      VERBOSE(2) mea_log_printf("%s (%s) : can't load parameters file\n", ERROR_STR, __func__);
+      VERBOSE(1) mea_log_printf("%s (%s) : can't alloc user configuration file\n", ERROR_STR, __func__);
       _httpResponse(conn, "Internal error");
       goto page_index_clean_exit;
-      return 1;
+   }
+
+   int ret=mea_cfgfile_load(val_user_params_file, params);
+   if(ret<0)
+   {
+      VERBOSE(2) mea_log_printf("%s (%s) : can't load parameters file (%s)\n", ERROR_STR, __func__, val_user_params_file);
+      _httpResponse(conn, "Internal error");
+      goto page_index_clean_exit;
    }
 
    mf=mea_memfile_init(mea_memfile_alloc(),AUTOEXTEND,1024,1);
@@ -317,17 +321,35 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
           
             if(error==0)
             {
-               char *new_params[NB_USERPARAMS];
-               new_params[ADMIN_PASSWORD_ID]=pass1;
-               new_params[MY_ESSID_ID]=essid_name;
-               new_params[MY_PASSWORD_ID]=essid_pass;
-               new_params[FREE_ID_ID]=freewifi_login;
-               new_params[FREE_PASSWORD_ID]=freewifi_pass;
-               new_params[MY_IP_AND_NETMASK_ID]=ip_netmask;
-               new_params[MY_DHCP_RANGE_ID]=dhcp_start_end;
+               struct cfgfile_params_s *new_params;
 
-               mea_write_cfgfile(sys_params[CONNECTIONCFGFILE_ID], user_params_keys_list, new_params, NB_USERPARAMS);
+               new_params = mea_cfgfile_params_alloc(user_params_keys_list);
+               if(new_params == NULL)
+               {
+                  _httpResponse(conn, "Internal error");
+                  free(buf);
+                  goto page_index_clean_exit;                  
+               }
+ 
+               mea_cfgfile_set_value_by_id(new_params, ADMIN_PASSWORD_ID, pass1);
+               mea_cfgfile_set_value_by_id(new_params, MY_ESSID_ID, essid_name);
+               mea_cfgfile_set_value_by_id(new_params, MY_PASSWORD_ID, essid_pass);
+               mea_cfgfile_set_value_by_id(new_params, FREE_ID_ID, freewifi_login);
+               mea_cfgfile_set_value_by_id(new_params, FREE_PASSWORD_ID, freewifi_pass);
+               mea_cfgfile_set_value_by_id(new_params, MY_IP_AND_NETMASK_ID, ip_netmask);
+               mea_cfgfile_set_value_by_id(new_params, MY_DHCP_RANGE_ID, dhcp_start_end);
 
+               int ret=mea_cfgfile_write(val_user_params_file, new_params);
+               mea_cfgfile_clean(new_params);
+               free(new_params);
+               new_params = NULL;
+               if(ret<0)
+               {
+                  _httpResponse(conn, "Internal error");
+                  free(buf);
+                  goto page_index_clean_exit;                  
+               }
+ 
                int ppid=getppid();
                if(ppid!=1)
                {
@@ -343,6 +365,7 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
                      else if(reboot_flag==1)
                      {
                         page_reboot(conn, mf, essid_name);
+                        free(buf);
                         goto page_index_clean_exit;                  
                      }
                      usleep(1000*500);
@@ -362,20 +385,23 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
    if(issubmit==-1)
    {
       int n;
-      strcpy(pass1, params[ADMIN_PASSWORD_ID]);
-      strcpy(pass2, params[ADMIN_PASSWORD_ID]);
-      strcpy(essid_name, params[MY_ESSID_ID]);
-      strcpy(essid_pass, params[MY_PASSWORD_ID]);
-      strcpy(freewifi_login, params[FREE_ID_ID]);
-      strcpy(freewifi_pass, params[FREE_PASSWORD_ID]);
-      sscanf(params[MY_IP_AND_NETMASK_ID],"%32[^,],%32[^/n]%n", ip, netmask, &n);
-      sscanf(params[MY_DHCP_RANGE_ID],"%32[^,],%32[^/n]%n", dhcp_start, dhcp_end, &n);
+      strcpy(pass1, mea_cfgfile_get_value_by_id(params, ADMIN_PASSWORD_ID));
+      strcpy(pass2, mea_cfgfile_get_value_by_id(params, ADMIN_PASSWORD_ID));
+      strcpy(essid_name, mea_cfgfile_get_value_by_id(params, MY_ESSID_ID));
+      strcpy(essid_pass, mea_cfgfile_get_value_by_id(params, MY_PASSWORD_ID));
+      strcpy(freewifi_login, mea_cfgfile_get_value_by_id(params, FREE_ID_ID));
+      strcpy(freewifi_pass, mea_cfgfile_get_value_by_id(params, FREE_PASSWORD_ID));
+
+      sscanf(mea_cfgfile_get_value_by_id(params, MY_IP_AND_NETMASK_ID),"%32[^,],%32[^/n]%n", ip, netmask, &n);
       mea_strtrim2(ip);
       mea_strtrim2(netmask);
+
+      sscanf(mea_cfgfile_get_value_by_id(params, MY_DHCP_RANGE_ID),"%32[^,],%32[^/n]%n", dhcp_start, dhcp_end, &n);
       mea_strtrim2(dhcp_start);
       mea_strtrim2(dhcp_end);
    }
 
+   fprintf(stderr,"pass %s %s\n",pass1, pass2);
    mea_memfile_printf(
       mf,
       "<html>"
@@ -636,7 +662,12 @@ static int page_index(struct mg_connection *conn, struct session_s *session)
    _httpResponse(conn, mf->data);
 
 page_index_clean_exit:
-   mea_clean_cfgfile(params, NB_USERPARAMS);
+   if(params)
+   {
+      mea_cfgfile_clean(params);
+      free(params);
+      params=NULL;
+   }
    
    if(mf)
    {
@@ -682,20 +713,28 @@ static int page_login(struct mg_connection *conn, struct session_s *session)
 
    struct mea_memfile_s *mf=NULL;
 
-   char *params[NB_USERPARAMS];
+   struct cfgfile_params_s *params = mea_cfgfile_params_alloc(user_params_keys_list);
+   if(params==NULL)
+   {
+      _httpResponse(conn, "Internal error");
+      VERBOSE(1) mea_log_printf("%s (%s) : can't alloc user configuration file\n", ERROR_STR, __func__);
+      return 1;
+   }
 
-   memset(params, 0, sizeof(params));
-
-   int ret=mea_load_cfgfile(sys_params[CONNECTIONCFGFILE_ID], user_params_keys_list, params, NB_USERPARAMS);
+   int ret=mea_cfgfile_load(val_user_params_file, params);
    if(ret<0)
    {
       _httpResponse(conn, "Internal error");
-      VERBOSE(2) mea_log_printf("%s (%s) : can't load parameters file\n",ERROR_STR,__func__);
+      VERBOSE(2) mea_log_printf("%s (%s) : can't load parameters file (%s)\n", ERROR_STR, __func__, val_user_params_file);
+      mea_cfgfile_clean(params);
+      free(params); 
       return 1;
    }
-   strcpy(admin_pass, params[ADMIN_PASSWORD_ID]);
+   strcpy(admin_pass, mea_cfgfile_get_value_by_id(params, ADMIN_PASSWORD_ID));
  
-   mea_clean_cfgfile(params, NB_USERPARAMS);
+   mea_cfgfile_clean(params);
+   free(params);
+   params=NULL;
  
    session->logged_in=0; 
    if ((cl = mg_get_header(conn, "Content-Length")) != NULL)
@@ -814,7 +853,6 @@ struct pages_s
 
 
 struct pages_s _allpages[]={{0,"/index.html",page_index},{1,"/login.html",page_login},{2, "/logout.html", page_logout},{-1,NULL,NULL}};
-
 
 static int pages(struct mg_connection *conn, struct session_s *session)
 {
@@ -1039,7 +1077,7 @@ int set_reboot_flag(int flag)
 }
 
 
-mea_error_t start_httpServer(char *home, char *bind_addr, uint16_t port_http, uint16_t port_https, char *sslpem)
+mea_error_t start_httpServer(char *home, char *bind_addr, uint16_t port_http, uint16_t port_https, char *sslpem, char *user_params_file)
 {
    int pid;
 
@@ -1084,7 +1122,10 @@ mea_error_t start_httpServer(char *home, char *bind_addr, uint16_t port_http, ui
      
       val_sslpem=malloc(strlen(sslpem)+1);
       strcpy(val_sslpem,sslpem);
-     
+    
+      val_user_params_file=malloc(strlen(user_params_file)+1);
+      strcpy(val_user_params_file, user_params_file);
+
       options[ 0]=str_document_root;
       options[ 1]=(const char *)val_document_root;
       options[ 2]=str_listening_ports;
@@ -1171,7 +1212,7 @@ int start_guiServer(int my_id, void *data, char *errmsg, int l_errmsg)
 
    _guiServer_id=my_id;
 
-   int ret=start_httpServer(guiServerData->home, guiServerData->addr, guiServerData->http_port, guiServerData->https_port, guiServerData->sslpem);
+   int ret=start_httpServer(guiServerData->home, guiServerData->addr, guiServerData->http_port, guiServerData->https_port, guiServerData->sslpem, guiServerData->user_params_file);
 
    return 0;
 }

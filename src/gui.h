@@ -9,6 +9,7 @@ struct guiServerData_s
    char sslpem[256];
    int http_port;
    int https_port;
+   char user_params_file[256];
 };
 
 int set_reboot_flag(int flag);

@@ -11,12 +11,12 @@
 
 #include "mea_ip_utils.h"
 #include "mea_verbose.h"
-//#include "mea_utils.h"
 #include "mea_timer.h"
 #include "mea_string_utils.h"
 
 #include "minidisplay.h"
 #include "auth.h"
+
 
 pthread_t *_linkServer_thread=NULL;
 
@@ -413,7 +413,7 @@ void *_link_thread(void *args)
       VERBOSE(5) mea_log_printf("%s (%s) : wait for %s ...\n", INFO_STR, __func__, essid);
       if(display)
          mini_display_xy_printf(display, DISPLAY_PAGE, 0, 0, 1, "wait %s ...", essid);
-      ret=waitessid(iface, essid, 0.0, 15);
+      ret=waitessid(iface, essid, 0.0, 30);
       if(ret<0)
       {
          VERBOSE(2) mea_log_printf("%s (%s) : waitessid can't get info !\n", ERROR_STR, __func__);
@@ -436,7 +436,6 @@ void *_link_thread(void *args)
          mini_display_xy_printf(display, DISPLAY_PAGE, 0, 0, 1, "wait %s: %dx", essid, ret);
          mini_display_xy_printf(display, DISPLAY_PAGE, 0, 1, 1, "ifup %s ...", iface);
       }
-      fprintf(stderr,"ICI5 (%d)\n", time(NULL));
       process_heartbeat(myID);
 
       ifdownret=ifupdown(myID, iface, 1);

@@ -43,4 +43,6 @@ int  lcd_gotoxy(struct lcd_s *lcd, uint16_t x, uint16_t y);
 int  lcd_print(struct lcd_s *lcd, char *str);
 int  lcd_printf(struct lcd_s *lcd, char const* fmt, ...);
 
+struct lcd_s *lcd_form_cfgfile_alloc(char *cfgfile);
+
 #endif
