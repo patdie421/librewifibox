@@ -15,7 +15,7 @@
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 #DAEMON_SBIN=/usr/sbin/hostapd
-LIBREWIFI_BASEPATH=/data/librewifi
+LIBREWIFI_BASEPATH="[[librewifi_basepath]]"
 HOSTAPD_INSTANCE=""
 DAEMON_SBIN=$LIBREWIFI_BASEPATH/bin/hostapd-rtl8188
 DAEMON_DEFS=$LIBREWIFI_BASEPATH/etc/default/hostapd$HOSTAPD_INSTANCE

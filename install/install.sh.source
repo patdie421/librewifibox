@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Fabrication :
+# cp install.sh.base install.sh
+# chmod +x install.sh
+# truncate install.sh -s 4096
+# verifier que l'ensemble du script est présent avant les ^@ ajoutés par truncate
+# cat install.tar.gz >> install.sh
+
+echo $#
+
+if [ $# -ne 1 ]
+then
+   echo "usage : $0 install_dir"
+   exit 1
+fi
+
+mypath=`realpath $0`
+destpath=$1
+
+# autoextraction des fichiers
+mkdir -p $destpath
+cd $destpath
+dd if=$mypath bs=4096 skip=1 | tar xzvf -
+
+cd etc
+echo "Création des clés ssl pour Mongoose"
+echo "================================================================================"
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 1000 -nodes
+cat key.pem > ssl.pem ; cat cert.pem >> ssl.pem
+
+exit 0
